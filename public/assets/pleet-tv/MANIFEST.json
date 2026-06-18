@@ -1,14 +1,54 @@
 {
   "source": "Lawrence Gene (lg@arcangles.art), PLE-77 comment 2026-06-18, labeled 'These are Pleet.TV materials'",
-  "provenance": "Primary-source assets supplied by Lawrence (PRD §8.10). Use as primary citation source; no double-sourcing required per board instruction.",
+  "provenance": "Primary-source assets supplied by Lawrence (PRD \u00a78.10). Use as primary citation source; no double-sourcing required per board instruction.",
   "basePath": "/assets/pleet-tv/",
   "assets": [
-    { "file": "pleet-logo.jpg", "kind": "logo", "suggestedUse": "Pleet LLC brand mark — header/branding, Media & Brand thread", "node": "branding / Pleet TV (§8.5)" },
-    { "file": "kayla-lee.jpg", "kind": "photo", "suggestedUse": "Portrait", "node": "person: Kayla Lee, NCARB — Lee Simon Design (§8.1/§8.8)" },
-    { "file": "lawrence-gene-3.jpg", "kind": "photo", "suggestedUse": "Portrait", "node": "person: Lawrence Gene — Pleet, Operations Chief, Mathematics (§8.8)" },
-    { "file": "pleet-tv-2026-06-10_18-24-17.jpg", "kind": "photo", "suggestedUse": "Pleet TV media gallery image", "node": "Media & Brand / Pleet TV (§8.5)", "captured": "2026-06-10" },
-    { "file": "pleet-tv-2026-06-10_18-24-23.jpg", "kind": "photo", "suggestedUse": "Pleet TV media gallery image", "node": "Media & Brand / Pleet TV (§8.5)", "captured": "2026-06-10" },
-    { "file": "pleet-tv-2026-06-10_18-24-24.jpg", "kind": "photo", "suggestedUse": "Pleet TV media gallery image", "node": "Media & Brand / Pleet TV (§8.5)", "captured": "2026-06-10" }
+    {
+      "file": "pleet-logo.jpg",
+      "kind": "logo",
+      "suggestedUse": "Pleet LLC brand mark \u2014 header/branding, Media & Brand thread",
+      "node": "branding / Pleet TV (\u00a78.5)"
+    },
+    {
+      "file": "kayla-lee.jpg",
+      "kind": "photo",
+      "suggestedUse": "Portrait",
+      "node": "person: Kayla Lee, NCARB \u2014 Lee Simon Design (\u00a78.1/\u00a78.8)"
+    },
+    {
+      "file": "lawrence-gene-3.jpg",
+      "kind": "photo",
+      "suggestedUse": "Portrait",
+      "node": "person: Lawrence Gene \u2014 Pleet, Operations Chief, Mathematics (\u00a78.8)"
+    },
+    {
+      "file": "pleet-tv-2026-06-10_18-24-17.jpg",
+      "kind": "photo",
+      "suggestedUse": "Pleet TV media gallery image",
+      "node": "Media & Brand / Pleet TV (\u00a78.5)",
+      "captured": "2026-06-10"
+    },
+    {
+      "file": "pleet-tv-2026-06-10_18-24-23.jpg",
+      "kind": "photo",
+      "suggestedUse": "Pleet TV media gallery image",
+      "node": "Media & Brand / Pleet TV (\u00a78.5)",
+      "captured": "2026-06-10"
+    },
+    {
+      "file": "pleet-tv-2026-06-10_18-24-24.jpg",
+      "kind": "photo",
+      "suggestedUse": "Pleet TV media gallery image",
+      "node": "Media & Brand / Pleet TV (\u00a78.5)",
+      "captured": "2026-06-10"
+    },
+    {
+      "file": "joshua-bowers.jpg",
+      "kind": "photo",
+      "suggestedUse": "Portrait",
+      "node": "person: Joshua Bowers \u2014 Jun 23 Mayor meeting attendee (\u00a78.6)",
+      "confirmedName": true
+    }
   ],
   "notes": "Filenames inferred from attachment labels; CEO did not open the images. Confirm Kayla/Lawrence portrait identities against the photos before publishing on a person node."
 }

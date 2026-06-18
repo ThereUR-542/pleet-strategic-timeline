@@ -1,0 +1,8 @@
+{
+  "source": "Lawrence Gene (lg@arcangles.art), PLE-77 comments 2026-06-18",
+  "note": "Confirmed full names/titles for §12 name-verification items. Apply to person nodes; clear any 'pending verification' treatment for these.",
+  "resolved": [
+    { "prdRef": "Joshua (Jun 23 Mayor meeting attendee, §8.6/§12)", "fullName": "Joshua Bowers", "photo": "/assets/pleet-tv/joshua-bowers.jpg", "confirmedAt": "2026-06-18" }
+  ],
+  "stillOpen": ["Tim (full name+title)", "Bo Jett (full name + IBC title)", "Hayden Hanoch (full name + Gateway title)", "Amy/BancFirst (full name; same as Amy Addington Smith?)", "Gene Bulmash (title)", "Daniel Regan (title)", "Aiman Hussain (SQ4D role)", "Adam Newman (confirm)", "Mayor Monroe Nichols (official title)", "Scott Rackers / David Marshall (roles)"]
+}
