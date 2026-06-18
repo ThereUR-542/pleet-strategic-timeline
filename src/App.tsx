@@ -1,89 +1,86 @@
-import { useMemo } from "react";
+import { useState, useCallback } from "react";
 import TIMELINE_DATA from "./data/content";
-import { verifyCumulativeDemand } from "./lib/demand";
-import { resolveToday, temporalStateFor } from "./lib/temporal";
+import { resolveToday } from "./lib/temporal";
+import { TimelineRenderer, type Orientation } from "./components/timeline/TimelineRenderer";
+import { NodeModal } from "./components/NodeModal";
+import { Legend } from "./components/legend/Legend";
 import {
   CitationsPanel,
   CitationsProvider,
   useCitations,
 } from "./components/citations";
+import "./styles/timeline.css";
 
-/**
- * Foundation shell (Phase 1). This boots the app against the canonical data
- * model, runs the §6.4 dual verification at runtime, and renders a status
- * surface so the Vercel preview shows real, verified state while the Frontend
- * builds the dual-orientation renderer (PLE child issue, Phase 2). Replace this
- * shell with the timeline renderer — the data + math layer below is stable.
- */
 export function App() {
   return (
     <CitationsProvider>
-      <AppShell />
-      <CitationsPanel
-        citations={TIMELINE_DATA.citations}
-        nodes={TIMELINE_DATA.nodes}
-      />
+      <TimelineApp />
     </CitationsProvider>
   );
 }
 
-function AppShell() {
+function TimelineApp() {
   const today = resolveToday(typeof window !== "undefined" ? window.location.search : "");
-  const verification = useMemo(
-    () => verifyCumulativeDemand(0, 18, TIMELINE_DATA.demandModel),
-    [],
-  );
-  const { open } = useCitations();
+  const { open: openCitations } = useCitations();
 
-  const counts = TIMELINE_DATA.nodes.reduce(
-    (acc, n) => {
-      acc[temporalStateFor(n, today)]++;
-      return acc;
-    },
-    { past: 0, today: 0, projected: 0 } as Record<string, number>,
-  );
+  const [orientation, setOrientation] = useState<Orientation>("horizontal");
+  const [focusNodeId, setFocusNodeId] = useState<string | null>(null);
+  const [openModalNodeId, setOpenModalNodeId] = useState<string | null>(null);
+
+  const handleNodeClick = useCallback((id: string) => {
+    setFocusNodeId(id);
+    setOpenModalNodeId(id);
+  }, []);
+
+  const handleModalClose = useCallback(() => {
+    setOpenModalNodeId(null);
+  }, []);
+
+  const handleOrientationToggle = useCallback(() => {
+    setOrientation((o) => (o === "horizontal" ? "vertical" : "horizontal"));
+  }, []);
+
+  const openNode = openModalNodeId
+    ? TIMELINE_DATA.nodes.find((n) => n.id === openModalNodeId)
+    : null;
 
   return (
-    <main className="app-shell">
-      <section className="glass-panel hero">
-        <p className="eyebrow">Pleet LLC · Strategic Timeline</p>
-        <h1>Foundation online</h1>
-        <p className="lede">
-          Data model (§7), reconciled content (§8), and the demand-math layer (§6)
-          are wired. The dual-orientation glass renderer is in build.
-        </p>
-        <dl className="stats">
-          <div>
-            <dt>Nodes</dt>
-            <dd>{TIMELINE_DATA.nodes.length}</dd>
-          </div>
-          <div>
-            <dt>Edges</dt>
-            <dd>{TIMELINE_DATA.edges.length}</dd>
-          </div>
-          <div>
-            <dt>Citations</dt>
-            <dd>{TIMELINE_DATA.citations.length}</dd>
-          </div>
-          <div>
-            <dt>Today</dt>
-            <dd>{today}</dd>
-          </div>
-        </dl>
-        <p className="temporal">
-          past {counts.past} · today {counts.today} · projected {counts.projected}
-        </p>
-        <p className={`verify ${verification.ok ? "ok" : "fail"}`}>
-          {verification.ok ? "✓" : "✗"} Demand math dual-verified · |Δ| ={" "}
-          {verification.delta.toExponential(2)}
-        </p>
-        <p className="theoretical">
+    <div className="timeline-view">
+      <TimelineRenderer
+        data={TIMELINE_DATA}
+        orientation={orientation}
+        today={today}
+        focusNodeId={focusNodeId}
+        onNodeClick={handleNodeClick}
+        onOrientationToggle={handleOrientationToggle}
+      />
+
+      <Legend />
+
+      <CitationsPanel
+        citations={TIMELINE_DATA.citations}
+        nodes={TIMELINE_DATA.nodes}
+      />
+
+      <div style={{ padding: "8px 20px", background: "rgba(10,12,17,0.6)", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", gap: 16, alignItems: "center" }}>
+        <span style={{ fontSize: 11, color: "rgba(174,182,198,0.7)" }}>
           Demand model is theoretical / illustrative — not audited fact (§6).
-        </p>
-        <button className="citations-open-btn" onClick={() => open()} type="button">
+        </span>
+        <button
+          onClick={() => openCitations()}
+          style={{ marginLeft: "auto", fontSize: 11, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+        >
           Works Cited ({TIMELINE_DATA.citations.length})
         </button>
-      </section>
-    </main>
+      </div>
+
+      {openNode && (
+        <NodeModal
+          node={openNode}
+          citations={TIMELINE_DATA.citations}
+          onClose={handleModalClose}
+        />
+      )}
+    </div>
   );
 }
