@@ -763,7 +763,7 @@ export const NODES: TimelineNode[] = [
     thread: "savanna",
     summary: "Adam Newman introduces Pleet to Savanna Schools.",
     bodyMd:
-      "Introduction to **Savanna Schools** via **Adam Newman** (full name/spelling pending verification, §12).",
+      "Introduction to **Savanna Schools** via **Adam Newman** (Superintendent, Savanna Public Schools — confirmed by Lawrence).",
     demandScore: null,
     media: [],
     citationIds: [],
@@ -894,7 +894,7 @@ export const NODES: TimelineNode[] = [
     thread: "strategic_relationships",
     summary: "Projected: City Hall meeting — the convergence focal event.",
     bodyMd:
-      "**Meeting with Mayor Monroe Nichols**, Tulsa City Hall (2026-06-23, 10:00 AM). Attendees include Lawrence Gene, Brady Deaton, Kayla Lee, Timothy C. Janak, Joshua Bowers, Paul Lawson — roster pending verification (§12). The focal convergence event.",
+      "**Meeting with Mayor Monroe Nichols**, Tulsa City Hall (2026-06-23, 10:00 AM). Attendees include Lawrence Gene, Brady Deaton, Kayla Lee, Timothy C. Janak, Joshua Bowers, Paul Lawson — roster confirmed by Lawrence. The focal convergence event.",
     demandScore: null,
     media: [],
     citationIds: [],
@@ -997,13 +997,13 @@ export const NODES: TimelineNode[] = [
     dateStart: null,
     dateEnd: null,
     thread: "financial_interest",
-    summary: "Executive Vice President, BancFirst — financial interest via Brady (Jenks branch and 'K.' unverified).",
+    summary: "Executive Vice President, BancFirst — financial interest via Brady Deaton. Confirmed by Lawrence (2026-06-18).",
     bodyMd:
-      "**Amy K. Cook** — Executive Vice President, **BancFirst**; financial interest in Pleet's work via Brady Deaton. A **distinct person** from Amy Addington Smith (media partner) — confirmed by Lawrence 2026-06-18. Note: public record (ZoomInfo) shows an Amy Cook, Exec VP, BancFirst in OKC — 'Jenks' branch location and 'K.' initial not independently verified; confirm branch + initial (§12).",
+      "**Amy K. Cook** — Executive Vice President, **BancFirst**; financial interest in Pleet's work via Brady Deaton. A **distinct person** from Amy Addington Smith (media partner). Name, 'K.' initial, and title confirmed by Lawrence 2026-06-18.",
     demandScore: null,
     media: [],
     citationIds: ["cite-bancfirst-fdic", "cite-bancfirst-ffiec"],
-    confidence: "unconfirmed",
+    confidence: "confirmed",
   },
   {
     id: "n-daniel-regan",
@@ -1468,13 +1468,13 @@ export const NODES: TimelineNode[] = [
     dateStart: null,
     dateEnd: null,
     thread: "oswego",
-    summary: "Pleet General Counsel — owns Oswego property; connected to Daniel Regan. (§12 open.)",
+    summary: "Pleet General Counsel — owns Oswego property; connected to Daniel Regan. Confirmed by Lawrence (2026-06-18).",
     bodyMd:
-      "**Timothy C. Janak, Esq.** — General Counsel, Pleet; owner of the **Oswego Project** property. Connected to **Daniel Regan** (Tulsa Airports Improvement Trust) and scheduled to introduce Pleet/Kayla Lee at a ribbon cutting on the path to Mayor Monroe Nichols. (Name/title pending independent verification, §12.)",
+      "**Timothy C. Janak, Esq.** — General Counsel, Pleet; owner of the **Oswego Project** property. Connected to **Daniel Regan** (Tulsa Airports Improvement Trust) and scheduled to introduce Pleet/Kayla Lee at a ribbon cutting on the path to Mayor Monroe Nichols. Name and title confirmed by Lawrence 2026-06-18.",
     demandScore: null,
     media: [],
     citationIds: [],
-    confidence: "unconfirmed",
+    confidence: "confirmed",
   },
   {
     id: "n-joshua",
@@ -1484,13 +1484,13 @@ export const NODES: TimelineNode[] = [
     dateStart: null,
     dateEnd: null,
     thread: "strategic_relationships",
-    summary: "Joshua Bowers — listed attendee at the Jun 23 Mayor Monroe Nichols meeting. (§12 open.)",
+    summary: "Joshua Bowers — attendee at the Jun 23 Mayor Monroe Nichols meeting. Confirmed by Lawrence (2026-06-18).",
     bodyMd:
-      "**Joshua Bowers** — listed as an attendee at the **Jun 23 Mayor meeting** at Tulsa City Hall. (Name pending independent verification, §12.)",
+      "**Joshua Bowers** — attendee at the **Jun 23 Mayor meeting** at Tulsa City Hall. Name confirmed by Lawrence 2026-06-18.",
     demandScore: null,
     media: [],
     citationIds: [],
-    confidence: "unconfirmed",
+    confidence: "confirmed",
   },
   {
     id: "n-amy-addington-smith",
