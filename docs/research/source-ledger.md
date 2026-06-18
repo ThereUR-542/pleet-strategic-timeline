@@ -53,7 +53,7 @@ Status legend: **VERIFIED** (≥2 independent reputable sources) · **PARTIAL** 
 ### A7. OSSBA/CCOSA Education Leadership Conference 2026 — VERIFIED
 - **Aug 13–16, 2026**, **Oklahoma City Convention Center** (100 Mick Cornett Dr, OKC). Exhibit hall open Aug 13–15.
 - Sources: **ossba.org** conference page (organizer = authoritative; verbatim "August 13-16, 2026") + ossba.org events listing; the event is independently listed by the **Oklahoma City Convention Center** (venue) and the **10times** conference aggregator, both reflecting the Aug 2026 dates in search-indexed copies (direct re-fetch blocked by anti-bot 403 / a stale recurring-template page — a fetch-tooling limitation, not absence of the source).
-- **Recommendation:** treat as **confirmed**; build's `ossba-convention` node may flip `unconfirmed → confirmed`. (Second source is a *listing*, not deep editorial coverage — noted for transparency.)
+- **Recommendation:** the **date value is verified** and can be cited. **Node `n-savanna-ossba` correctly STAYS `unconfirmed`** (per CTO, PLE-112 close) — not because of the date, but because the node's **SQ4D-attendance claim is aspirational/§12-TBD**. So: cite the date, but do **not** flip the node to confirmed until the SQ4D-attendance question resolves. (Second source is a *listing*, not deep editorial coverage — noted for transparency.)
 
 ---
 
@@ -113,3 +113,39 @@ Public, verifiable sources now available to attach to nodes:
 - Savanna 1st bond (Apr 7, 2026) → McAlester News-Capital "Savanna school bond fails" + Ballotpedia + KOSU/KGOU (A6).
 - Savanna 2nd bond (Aug 25, 2026) → savanna.k12.ok.us Bond Transparency Act filing (A6) — single public source; add 2nd when state/county certifies.
 - OSSBA Convention (Aug 13–16, 2026) → ossba.org conference page + OKC Convention Center listing (A7).
+
+---
+
+## F. Canonical Works Cited — verified (MLA-9) — *for the `CITATIONS` array*
+
+> **Why this section exists.** PLE-117 (Eng) integrated 24 public `CITATIONS[]` entries into `src/data/content.ts` but had to **reconstruct** several `titleSource`/`location` strings from §A–§E *descriptions*, because §E held only source pointers, not formal headlines. This section is the canonical MLA-9 list those entries should match. Titles/URLs below were **live-verified** by the Research Lead on **2026-06-18** (the verification pass PLE-117 requested). ✅ = verbatim-verified; ⚠️ = correction needed vs `cc21e0b`; ◻︎ = descriptive profile/landing page, no canonical headline (reconstructed string acceptable).
+
+**Nichols (A1)**
+- ✅ `cite-nichols-cityoftulsa` — "Tulsa Welcomes New Mayor, Auditor, City Councilors to City Hall." *City of Tulsa*, 2 Dec. 2024, cityoftulsa.org/press-room/tulsa-welcomes-new-mayor-auditor-city-councilors-to-city-hall-dec-2024/. **(exact — no change)**
+- ✅ `cite-nichols-pbs` — "Tulsa Elects First Black Mayor." *PBS NewsHour*, NewsHour Productions, Nov. 2024, pbs.org/newshour/live-update/election-news-2024/tulsa-elects-first-black-mayor. **(exact — no change)**
+
+**Oklahoma manufacturing / NorSun (A2)**
+- ⚠️ `cite-norsun-okgov` — title → **"NorSun Announces $620 Million Investment for U.S. Solar Wafer Manufacturing Operations at Tulsa International Airport"**; container → **"State of Oklahoma — Aerospace"** (drop "and Defense"); location → oklahoma.gov/aerospace/outreach-advocacy/newsroom/norsun-announces-620-million-investment-for-us-solar-wafer-manufacturing-operations-at-tulsa-international-airport.html. Date 2 July 2024 ✅. **Independent 2nd source confirmed:** *Fly Tulsa* carries the identical headline — flytulsa.com/news/norsun-announces-620-million-investment-for-u-s-solar-wafer-manufacturing-operations-at-tulsa-international-airport/.
+
+**IBC (A3)**
+- ⚠️ `cite-ibc-swledger` — title → **"IBC Bank Obtains Oklahoma Charter"**; location → southwestledger.news/news/ibc-bank-obtains-oklahoma-charter. **DATE FLAG:** ledger says 30 Jan 2023; live source reports **31 Jan 2023** — confirm exact day (both within the same week; pick the byline date on the article).
+- ⚠️ `cite-ibc-branch` — location → ibc.com/ok/oklahoma-city/3817-nw-expressway-100-ibc-bank-oklahoma (address 3817 NW Expressway #100, OKC ✅). Title is a ◻︎ branch-page label — acceptable.
+
+**Gateway First (A3)**
+- ⚠️ `cite-gateway-newsroom` — title → **"Gateway Mortgage Group Completes Merger to Form Gateway First Bank"**; location → gatewayfirst.com/newsroom/gateway-mortgage-group-completes-merger-to-form-gateway-first-bank. Date 6 May 2019 ✅ (Business Wire release id 20190506). Independent corroboration: *National Mortgage Professional* / Business Wire.
+
+**Cherokee Nation housing program (C2)** — **§C2 reframing fully corroborated:** $40M every three years in perpetuity, 85% housing / 15% community buildings, permanently reauthorized Sept 2024. (Triple-sourced: Anadisgoi, KOSU, Tulsa World.)
+- ⚠️ `cite-cherokee-anadisgoi` — title → **"Cherokee Nation Celebrates Permanent Reauthorization of Landmark Housing, Jobs and Sustainable Communities Act"**; location → anadisgoi.com/index.php/government-stories/cherokee-nation-celebrates-permanent-reauthorization-of-landmark-housing-jobs-and-sustainable-communities-act.
+- ⚠️ `cite-cherokee-phoenix` — title → **"Chief Hoskin, Deputy Chief Warner Propose Permanent Housing Law"**; location → cherokeephoenix.org/news/chief-hoskin-deputy-chief-warner-propose-permanent-housing-law/. (Independent of Anadisgoi ✅.)
+
+**SQ4D milestone (A5)** — *company/milestone only; the SQ4D **contact** stays gated by §C1.*
+- ⚠️ `cite-sq4d-prnewswire` — title → **"FOR SALE: First Permitted 3D Printed House Hits the Market"** (note: *House*, not *Home*); location → prnewswire.com/news-releases/for-sale-first-permitted-3d-printed-house-hits-the-market-301214631.html. Date 26 Jan. 2021 ✅.
+- ⚠️ `cite-sq4d-3dnatives` — title → **"SQ4D Puts First Ever 3D Printed House on the Market"**; location → 3dnatives.com/en/sq4d-puts-first-ever-3d-printed-010220215/. Date 1 Feb. 2021 ✅.
+
+**Gene Bulmash (A1 / PLE-117 item 1) — INDEPENDENCE DEFECT**
+- ⚠️ `cite-bulmash-cityhousing` **+** `cite-bulmash-pressroom` are **both *City of Tulsa*** (same publisher) → this pair does **not** satisfy the board's two-*independent*-source standard. PLE-117 item 1 named the pair as **"City of Tulsa + LinkedIn."** Fix: keep `cite-bulmash-cityhousing` ("Increasing Affordable Housing", cityoftulsa.org/housing) and **replace `cite-bulmash-pressroom` with a Gene Bulmash LinkedIn citation** for independence. Also note: Bulmash's **full name/spelling + exact City title** remains an open **§D Lawrence-gap** — the public title "Senior Advisor of Housing" is corroborated, but the node's `confirmed` flag still rests partly on a primary gap.
+
+**Descriptive profile/landing pages (◻︎ — reconstructed strings acceptable as-is):**
+- `cite-bancfirst-fdic` (USBankLocations; FDIC Cert #27476 ✅) · `cite-bancfirst-ffiec` (FFIEC NPW) · `cite-hanoch-fox23` (FOX23, 20 May 2026 per §B — headline reconstructed) · `cite-1arch-team` / `cite-1arch-tero` · `cite-leesimon-studio` / `cite-leesimon-linkedin` · `cite-whitewolf-about` / `cite-whitewolf-bright` · `cite-homegarden-tulsahba` / `cite-homegarden-exposquare` · `cite-regan-flytulsa` (Fly Tulsa, 3 Apr. 2025 — title tail "on New Facility" reconstructed from §A2's "…").
+
+**Verdict:** 0 date errors among ledger-grounded dates (Nichols, NorSun, Gateway, SQ4D ×2, FOX23, Southwest Ledger all match — one **30↔31 Jan** IBC day to confirm). 9 entries get exact-title/URL upgrades above; 1 independence defect (Bulmash); the rest are sound. No fabricated source — every entry resolves to a real, named public record.
