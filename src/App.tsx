@@ -1,9 +1,9 @@
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo } from "react";
 import TIMELINE_DATA from "./data/content";
 import { resolveToday } from "./lib/temporal";
-import { TimelineRenderer, type Orientation } from "./components/timeline/TimelineRenderer";
-import { NodeModal, HoverCard } from "./components/modal";
-import { Legend } from "./components/legend/Legend";
+import { FlowCanvas } from "./components/flow/FlowCanvas";
+import { DetailPanel } from "./components/flow/DetailPanel";
+import { DemandPanel } from "./components/flow/DemandPanel";
 import {
   CitationsPanel,
   CitationsProvider,
@@ -14,8 +14,9 @@ import { matchingNodeIds } from "./components/chrome/filterNodes";
 import { StrategicSummary } from "./components/summary/StrategicSummary";
 import { PresenterMode, buildPresenterSteps } from "./components/presenter/PresenterMode";
 import "./styles/timeline.css";
+import "./styles/flow.css";
 
-type ViewTab = "timeline" | "summary";
+type ViewTab = "flow" | "summary";
 
 export function App() {
   return (
@@ -29,23 +30,21 @@ function TimelineApp() {
   const today = resolveToday(typeof window !== "undefined" ? window.location.search : "");
   const { open: openCitations } = useCitations();
 
-  const [orientation, setOrientation] = useState<Orientation>("horizontal");
-  const [focusNodeId, setFocusNodeId] = useState<string | null>(null);
-  const [openModalNodeId, setOpenModalNodeId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<ViewTab>("timeline");
+  const [activeTab, setActiveTab] = useState<ViewTab>("flow");
+  // Deep-link support: `?node=<id>` preselects a node (handy when presenting).
+  const initialSelected = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    const id = new URLSearchParams(window.location.search).get("node");
+    return id && TIMELINE_DATA.nodes.some((n) => n.id === id) ? id : null;
+  }, []);
+  const [selectedId, setSelectedId] = useState<string | null>(initialSelected);
   const [filter, setFilter] = useState<FilterState>(EMPTY_FILTER);
   const [presenterActive, setPresenterActive] = useState(false);
   const [presenterStep, setPresenterStep] = useState(0);
-
-  // Hover card state (§4.3)
-  const [hoverState, setHoverState] = useState<{
-    id: string;
-    x: number;
-    y: number;
-  } | null>(null);
-
-  // The SVG <g> that triggered the last modal open; focus returns there on close (§4.3)
-  const modalOriginRef = useRef<Element | null>(null);
+  const [demandOpen, setDemandOpen] = useState(
+    typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("demand") === "1",
+  );
 
   const presenterStepIds = useMemo(
     () => buildPresenterSteps(TIMELINE_DATA.nodes, TIMELINE_DATA.edges),
@@ -57,104 +56,67 @@ function TimelineApp() {
     [filter],
   );
 
-  const handleNodeClick = useCallback((id: string, originEl: Element) => {
-    setFocusNodeId(id);
-    modalOriginRef.current = originEl;
-    setOpenModalNodeId(id);
-    setHoverState(null);
+  const handleNodeSelect = useCallback((id: string) => {
+    setSelectedId(id || null);
   }, []);
-
-  const handleModalClose = useCallback(() => {
-    setOpenModalNodeId(null);
-  }, []);
-
-  const handleOrientationToggle = useCallback(() => {
-    setOrientation((o) => (o === "horizontal" ? "vertical" : "horizontal"));
-  }, []);
-
-  const handleNodeHover = useCallback(
-    (id: string | null, x: number, y: number) => {
-      if (openModalNodeId) return;
-      setHoverState(id ? { id, x, y } : null);
-    },
-    [openModalNodeId],
-  );
 
   const enterPresenter = useCallback(() => {
     setPresenterStep(0);
+    setSelectedId(null);
     setPresenterActive(true);
   }, []);
 
   const exitPresenter = useCallback(() => {
     setPresenterActive(false);
-    setFocusNodeId(presenterStepIds[presenterStep] ?? null);
-  }, [presenterStep, presenterStepIds]);
+  }, []);
 
-  const openNode = openModalNodeId
-    ? TIMELINE_DATA.nodes.find((n) => n.id === openModalNodeId)
-    : null;
-
-  const hoverNode = hoverState
-    ? TIMELINE_DATA.nodes.find((n) => n.id === hoverState.id)
+  const selectedNode = selectedId
+    ? TIMELINE_DATA.nodes.find((n) => n.id === selectedId) ?? null
     : null;
 
   const presenterNodeId = presenterActive ? (presenterStepIds[presenterStep] ?? null) : null;
 
-  const timelineContent = (
-    <TimelineRenderer
-      data={TIMELINE_DATA}
-      orientation={orientation}
-      today={today}
-      focusNodeId={presenterNodeId ?? focusNodeId}
-      onNodeClick={handleNodeClick}
-      onOrientationToggle={handleOrientationToggle}
-      onNodeHover={handleNodeHover}
-      matchedNodeIds={presenterActive ? null : matchedIds}
-      presenterStepId={presenterNodeId}
-      hideControls={presenterActive}
-    />
-  );
-
+  // ── Presenter mode: fullscreen step-through over the same flow graph ──
   if (presenterActive) {
     return (
-      <>
-        <PresenterMode
-          nodes={TIMELINE_DATA.nodes}
-          edges={TIMELINE_DATA.edges}
-          stepIndex={presenterStep}
-          stepIds={presenterStepIds}
-          onStepChange={setPresenterStep}
-          onExit={exitPresenter}
-          orientation={orientation}
-        >
-          {timelineContent}
-        </PresenterMode>
-        {openNode && (
-          <NodeModal
-            node={openNode}
-            citations={TIMELINE_DATA.citations}
-            onClose={handleModalClose}
-            originEl={modalOriginRef.current}
+      <PresenterMode
+        nodes={TIMELINE_DATA.nodes}
+        edges={TIMELINE_DATA.edges}
+        stepIndex={presenterStep}
+        stepIds={presenterStepIds}
+        onStepChange={setPresenterStep}
+        onExit={exitPresenter}
+        orientation="horizontal"
+      >
+        <div className="flow-canvas-host" style={{ height: "100%" }}>
+          <FlowCanvas
+            data={TIMELINE_DATA}
+            today={today}
+            selectedId={presenterNodeId}
+            focusNodeId={presenterNodeId}
+            matchedNodeIds={null}
+            onNodeSelect={() => {}}
+            compact
           />
-        )}
-      </>
+        </div>
+      </PresenterMode>
     );
   }
 
   return (
-    <div className="timeline-view">
+    <div className="flow-shell">
       {/* ── Global chrome: tabs + search ── */}
       <div className="global-chrome">
         <div className="chrome-tabs" role="tablist" aria-label="Views">
           <button
-            id="tab-timeline"
-            className={`chrome-tab ${activeTab === "timeline" ? "chrome-tab-active" : ""}`}
+            id="tab-flow"
+            className={`chrome-tab ${activeTab === "flow" ? "chrome-tab-active" : ""}`}
             role="tab"
-            aria-selected={activeTab === "timeline"}
-            aria-controls="panel-timeline"
-            onClick={() => setActiveTab("timeline")}
+            aria-selected={activeTab === "flow"}
+            aria-controls="panel-flow"
+            onClick={() => setActiveTab("flow")}
           >
-            Timeline
+            Flow Chart
           </button>
           <button
             id="tab-summary"
@@ -184,7 +146,7 @@ function TimelineApp() {
           </button>
         </div>
 
-        {activeTab === "timeline" && (
+        {activeTab === "flow" && (
           <SearchFilterBar
             filter={filter}
             onChange={setFilter}
@@ -194,43 +156,49 @@ function TimelineApp() {
         )}
       </div>
 
-      {/* ── Main content area ── */}
-      {activeTab === "timeline" ? (
-        <div id="panel-timeline" role="tabpanel" aria-labelledby="tab-timeline" tabIndex={0}>
-          {timelineContent}
-          <Legend />
-          <div className="footer-bar">
-            <span className="footer-disclaimer">
-              Demand model is theoretical / illustrative — not audited fact (§6).
-            </span>
+      {/* ── Main content ── */}
+      {activeTab === "flow" ? (
+        <div id="panel-flow" role="tabpanel" aria-labelledby="tab-flow" className="flow-stage">
+          <div className="flow-canvas-host">
+            <FlowCanvas
+              data={TIMELINE_DATA}
+              today={today}
+              selectedId={selectedId}
+              focusNodeId={null}
+              matchedNodeIds={matchedIds}
+              onNodeSelect={handleNodeSelect}
+            />
+            <DemandPanel
+              model={TIMELINE_DATA.demandModel}
+              open={demandOpen}
+              onToggle={() => setDemandOpen((v) => !v)}
+            />
           </div>
+          {selectedNode && (
+            <DetailPanel
+              node={selectedNode}
+              citations={TIMELINE_DATA.citations}
+              onClose={() => setSelectedId(null)}
+            />
+          )}
         </div>
       ) : (
-        <div id="panel-summary" role="tabpanel" aria-labelledby="tab-summary" tabIndex={0}>
+        <div
+          id="panel-summary"
+          role="tabpanel"
+          aria-labelledby="tab-summary"
+          tabIndex={0}
+          style={{ flex: "1 1 auto", overflowY: "auto" }}
+        >
           <StrategicSummary data={TIMELINE_DATA} today={today} />
         </div>
       )}
 
-      {/* ── Panels ── */}
+      {/* ── Citations side panel ── */}
       <CitationsPanel
         citations={TIMELINE_DATA.citations}
         nodes={TIMELINE_DATA.nodes}
       />
-
-      {/* Hover card (§4.3) — position: fixed, zero layout shift */}
-      {hoverNode && hoverState && (
-        <HoverCard node={hoverNode} x={hoverState.x} y={hoverState.y} />
-      )}
-
-      {/* Focus-trapped modal (§4.3) */}
-      {openNode && (
-        <NodeModal
-          node={openNode}
-          citations={TIMELINE_DATA.citations}
-          onClose={handleModalClose}
-          originEl={modalOriginRef.current}
-        />
-      )}
     </div>
   );
 }

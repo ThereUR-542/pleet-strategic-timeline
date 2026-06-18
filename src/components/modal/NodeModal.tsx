@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { TimelineNode, Citation } from "../../data/types";
 import { renderMla } from "../../lib/mla";
-import { externalLinkProps } from "../../lib/links";
+import { renderInline } from "../../lib/inlineMarkdown";
 import { useFocusTrap } from "./FocusTrap";
 import { MediaEmbed } from "./MediaEmbed";
 
@@ -161,41 +161,4 @@ export function NodeModal({ node, citations, onClose, originEl }: Props) {
     </div>,
     document.body,
   );
-}
-
-/**
- * Parse inline markdown: bold (`**…**`) and external links `[text](url)`.
- * External links always get rel="noopener noreferrer" target="_blank" (§4.4/§11).
- */
-function renderInline(text: string): React.ReactNode {
-  const linkRe = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g;
-  const nodes: React.ReactNode[] = [];
-  let last = 0;
-  let m: RegExpExecArray | null;
-
-  while ((m = linkRe.exec(text)) !== null) {
-    if (m.index > last) {
-      nodes.push(...splitBold(text.slice(last, m.index), nodes.length));
-    }
-    nodes.push(
-      <a key={m.index} {...externalLinkProps(m[2])}>
-        {m[1]}
-      </a>,
-    );
-    last = m.index + m[0].length;
-  }
-  if (last < text.length) {
-    nodes.push(...splitBold(text.slice(last), nodes.length));
-  }
-
-  return nodes.length ? nodes : text;
-}
-
-function splitBold(text: string, baseKey: number): React.ReactNode[] {
-  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) => {
-    if (part.startsWith("**") && part.endsWith("**")) {
-      return <strong key={baseKey + i}>{part.slice(2, -2)}</strong>;
-    }
-    return part;
-  });
 }

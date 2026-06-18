@@ -1,0 +1,480 @@
+/* =============================================================================
+   Flow-graph view (PLE-92). Clean, calm, lots of whitespace. Dark canvas with
+   solid, self-contained nodes — nothing translucent stacked on anything.
+   ============================================================================= */
+
+.flow-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-height: 0;
+}
+
+/* Canvas + docked detail panel sit side-by-side; the canvas shrinks to make
+   room for the panel so detail NEVER overlays the graph. */
+.flow-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+.flow-canvas-host {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.react-flow.flow-canvas {
+  background: transparent;
+}
+
+/* ── React Flow chrome overrides ─────────────────────────────────────────── */
+.flow-canvas .react-flow__controls {
+  box-shadow: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.flow-canvas .react-flow__controls-button {
+  background: rgba(20, 22, 28, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: #cdd5e4;
+  fill: #cdd5e4;
+}
+.flow-canvas .react-flow__controls-button:hover {
+  background: rgba(40, 44, 54, 0.95);
+}
+.flow-minimap {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(12, 14, 19, 0.7) !important;
+}
+.flow-canvas .react-flow__edge-text {
+  font-family: inherit;
+}
+
+/* ── Node card ───────────────────────────────────────────────────────────── */
+.flow-node {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  width: 236px;
+  min-height: 78px;
+  padding: 0;
+  border-radius: 12px;
+  background: #161a22;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.32);
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s;
+}
+.flow-node:hover {
+  border-color: var(--node-accent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  transform: translateY(-1px);
+}
+.flow-node__bar {
+  flex: 0 0 4px;
+  background: var(--node-accent);
+}
+.flow-node__body {
+  flex: 1 1 auto;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+}
+.flow-node__title {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #f4f6fb;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.flow-node__meta {
+  font-size: 10px;
+  color: #8b94a7;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.flow-node__badges {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+}
+.flow-badge {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 5px;
+  border-radius: 5px;
+  line-height: 1;
+}
+.flow-badge--today {
+  background: #ffffff;
+  color: #0a0c11;
+}
+.flow-badge--demand {
+  background: rgba(87, 224, 168, 0.18);
+  color: #57e0a8;
+  border: 1px solid rgba(87, 224, 168, 0.4);
+}
+.flow-badge--pending {
+  background: rgba(255, 255, 255, 0.06);
+  color: #aeb6c6;
+  border: 1px dashed rgba(255, 255, 255, 0.3);
+  text-transform: lowercase;
+}
+.flow-node--selected {
+  border-color: var(--node-accent);
+  box-shadow: 0 0 0 2px var(--node-accent), 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.flow-node--focal {
+  border-color: rgba(167, 139, 250, 0.7);
+}
+.flow-node--unconfirmed {
+  border-style: dashed;
+}
+.flow-node--dimmed {
+  opacity: 0.22;
+}
+
+.flow-handle {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Stage column header ─────────────────────────────────────────────────── */
+.stage-header {
+  width: 236px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  pointer-events: none;
+}
+.stage-header__label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #c8d0e0;
+}
+.stage-header__blurb {
+  font-size: 10.5px;
+  color: #7b8499;
+}
+.stage-header__rule {
+  margin-top: 5px;
+  height: 2px;
+  width: 40px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(110, 168, 255, 0.7), transparent);
+}
+
+/* ── Floating panels (title, toolbar, legend) ────────────────────────────── */
+.flow-titlecard {
+  background: rgba(14, 17, 23, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin: 12px;
+}
+.flow-titlecard__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.flow-titlecard__sub {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  color: #8b94a7;
+}
+
+.flow-toolbar {
+  display: flex;
+  gap: 8px;
+  margin: 12px;
+}
+.flow-btn {
+  background: rgba(20, 22, 28, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cdd5e4;
+  font: inherit;
+  font-size: 12px;
+  padding: 7px 13px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.flow-btn:hover {
+  background: rgba(40, 44, 54, 0.95);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.flow-legend {
+  display: flex;
+  gap: 22px;
+  background: rgba(14, 17, 23, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin: 12px;
+}
+.flow-legend__col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.flow-legend__head {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #7b8499;
+  margin-bottom: 2px;
+}
+.flow-legend__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #c8d0e0;
+}
+.flow-legend__swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+}
+.flow-legend__line {
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+}
+
+/* ── Docked detail panel ─────────────────────────────────────────────────── */
+.detail-panel {
+  flex: 0 0 380px;
+  width: 380px;
+  max-width: 42vw;
+  display: flex;
+  flex-direction: column;
+  background: #0e1117;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  min-height: 0;
+  animation: detail-in 0.18s ease;
+}
+@keyframes detail-in {
+  from { transform: translateX(16px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .detail-panel { animation: none; }
+}
+.detail-panel__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.detail-panel__dot {
+  flex: 0 0 12px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-top: 4px;
+}
+.detail-panel__headtext { flex: 1 1 auto; min-width: 0; }
+.detail-panel__title {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.3;
+}
+.detail-panel__meta {
+  margin: 5px 0 0;
+  font-size: 11.5px;
+  color: #8b94a7;
+}
+.detail-panel__close {
+  flex: 0 0 auto;
+  background: none;
+  border: none;
+  color: #8b94a7;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 6px;
+  line-height: 1;
+}
+.detail-panel__close:hover { color: #f4f6fb; background: rgba(255, 255, 255, 0.08); }
+.detail-panel__scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 16px 18px 28px;
+}
+.detail-panel__note {
+  font-size: 12px;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+}
+.detail-panel__demand {
+  font-size: 12px;
+  color: #57e0a8;
+  background: rgba(87, 224, 168, 0.08);
+  border: 1px solid rgba(87, 224, 168, 0.25);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+}
+.detail-panel__body {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #d7dde9;
+}
+.detail-panel__body p { margin: 0 0 12px; }
+.detail-panel__body a { color: #6ea8ff; }
+.detail-panel__cites {
+  margin-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 14px;
+}
+.detail-panel__cites h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8b94a7;
+  margin: 0 0 8px;
+}
+.detail-panel__cites ol {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: #aeb6c6;
+  line-height: 1.6;
+}
+
+/* ── Demand Outlook (dedicated, separate panel) ──────────────────────────── */
+.demand-toggle,
+.demand-panel {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 6;
+}
+.demand-toggle {
+  background: rgba(14, 17, 23, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(87, 224, 168, 0.35);
+  color: #57e0a8;
+  font: inherit;
+  font-size: 12px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.demand-toggle:hover { border-color: #57e0a8; }
+.demand-panel {
+  width: 296px;
+  background: rgba(14, 17, 23, 0.86);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+.demand-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.demand-panel__title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.demand-panel__close {
+  background: none;
+  border: none;
+  color: #8b94a7;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 4px;
+}
+.demand-panel__close:hover { color: #f4f6fb; }
+.demand-panel__chart {
+  width: 100%;
+  height: 84px;
+  display: block;
+}
+.demand-panel__axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 8px;
+  color: #6b7385;
+  margin-top: 2px;
+  padding: 0 1px;
+}
+.demand-panel__sub {
+  margin: 6px 0 10px;
+  font-size: 10px;
+  color: #7b8499;
+}
+.demand-panel__steps-label {
+  font-size: 10px;
+  color: #8b94a7;
+}
+.demand-panel__steps-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.demand-step {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  color: #aeb6c6;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 5px;
+  padding: 2px 6px;
+}
+.demand-step strong { color: #57e0a8; }
+.demand-panel__verify {
+  margin: 12px 0 0;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+.demand-panel__verify.ok { color: #57e0a8; }
+.demand-panel__verify.fail { color: #ff6b6b; }
+
+@media (max-width: 760px) {
+  .detail-panel {
+    position: absolute;
+    inset: 0 0 0 auto;
+    flex-basis: 100%;
+    width: 100%;
+    max-width: 100%;
+    z-index: 20;
+  }
+}
