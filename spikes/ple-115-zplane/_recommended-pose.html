@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PLE-115 — Z-plane feasibility spike (CSS 3D transforms)</title>
+<style>
+  /* ── Mirrors the live flowTheme.ts tokens + StageNode card look, so this
+        spike reads as OUR graph, not a generic demo. Throwaway: proves the
+        CSS-3D mechanism only; NOT integrated into the app or PLE-114 layout. */
+  :root {
+    --bg: #0b1220;
+    --panel: #131c2e;
+    --ink: #e7eefc;
+    --muted: #93a3bd;
+    --line: #2a3955;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background:
+      radial-gradient(1200px 700px at 70% -10%, #182e4d 0%, transparent 60%), var(--bg);
+      background-color: var(--bg); color: var(--ink);
+      font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+  .hud {
+    position: fixed; z-index: 50; left: 16px; top: 16px;
+    background: rgba(19,28,46,0.85); border: 1px solid var(--line);
+    border-radius: 12px; padding: 12px 14px; backdrop-filter: blur(6px);
+    width: 252px;
+  }
+  .hud h1 { font-size: 13px; margin: 0 0 2px; letter-spacing: .2px; }
+  .hud p { margin: 0 0 10px; color: var(--muted); font-size: 11.5px; }
+  .ctl { display: flex; align-items: center; gap: 8px; margin: 7px 0; }
+  .ctl label { width: 78px; color: var(--muted); font-size: 11.5px; }
+  .ctl input[type=range] { flex: 1; accent-color: #6ea8ff; }
+  .ctl .val { width: 38px; text-align: right; color: var(--ink);
+              font-variant-numeric: tabular-nums; font-size: 11.5px; }
+  .hint { color: var(--muted); font-size: 11px; margin-top: 8px; }
+  .hint b { color: #6ea8ff; }
+
+  /* ── 3D stage ──────────────────────────────────────────────────────────── */
+  .scene {
+    position: fixed; inset: 0;
+    perspective: 1500px;            /* the camera: enables real Z foreshortening */
+    perspective-origin: 50% 50%;
+    overflow: hidden;
+    cursor: grab;
+  }
+  .scene:active { cursor: grabbing; }
+
+  /* The whole flow plane rotates as one rigid body. Nodes + edges live inside,
+     so SVG connectors rotate WITH the cards — exactly React Flow's substrate. */
+  .plane {
+    position: absolute; left: 50%; top: 50%;
+    width: 1180px; height: 520px; margin-left: -590px; margin-top: -260px;
+    transform-style: preserve-3d;
+    transition: transform .08s linear;
+  }
+
+  /* Edge layer — SVG, sits on the plane (z=0). preserve-3d keeps it co-planar. */
+  .edges { position: absolute; inset: 0; overflow: visible; transform-style: preserve-3d; }
+  .edges path { fill: none; stroke-width: 2; opacity: .85;
+                stroke-linecap: round; filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); }
+
+  /* ── Node card — replicates .flow-node from flow.css ───────────────────── */
+  .node {
+    position: absolute; width: 202px; min-height: 60px;
+    transform-style: preserve-3d;
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px 8px 14px;
+    background: #18233a; border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+    border-radius: 10px; color: var(--ink);
+    box-shadow: 0 8px 20px rgba(0,0,0,.45);
+    backface-visibility: visible;
+  }
+  .node .bar { position:absolute; left:0; top:8px; bottom:8px; width:4px;
+               border-radius:4px; background: var(--accent); }
+  .node .icon { width: 26px; height: 26px; flex: none; border-radius: 7px;
+                background: color-mix(in srgb, var(--accent) 28%, #0c1424);
+                border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+                display:flex; align-items:center; justify-content:center;
+                font-size: 13px; }
+  .node .body { min-width: 0; }
+  .node .title { font-size: 12px; font-weight: 600; line-height: 1.2;
+                 display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+                 overflow:hidden; }
+  .node .meta { font-size: 10px; color: var(--muted); margin-top: 2px;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .node .badge { position:absolute; top:-8px; right:-6px; font-size:9px;
+                 padding:2px 6px; border-radius: 999px; font-weight:700;
+                 background:#0c1424; border:1px solid var(--accent); color: var(--accent); }
+  .depth-tag { position:absolute; bottom:-7px; left:10px; font-size:8.5px;
+               color: var(--muted); background:#0c1424; padding:1px 5px;
+               border-radius: 6px; border:1px solid var(--line); }
+</style>
+</head>
+<body>
+  <div class="hud">
+    <h1>PLE-115 · Z-plane spike</h1>
+    <p>Existing DOM cards + SVG edges, rotated in 3D via CSS transforms. Drag the scene or use sliders.</p>
+    <div class="ctl"><label>Rotate&nbsp;X</label><input id="rx" type="range" min="-32" max="8" value="-18"><span class="val" id="rxv">-18°</span></div>
+    <div class="ctl"><label>Rotate&nbsp;Y</label><input id="ry" type="range" min="-35" max="35" value="22"><span class="val" id="ryv">22°</span></div>
+    <div class="ctl"><label>Z&nbsp;depth</label><input id="zd" type="range" min="0" max="260" value="150"><span class="val" id="zdv">150</span></div>
+    <div class="hint">Depth axis = <b>story thread</b>. Each thread is lifted to its own Z layer, so crossing edges separate into parallel planes.</div>
+  </div>
+
+  <div class="scene" id="scene">
+    <div class="plane" id="plane">
+      <svg class="edges" id="edges" viewBox="0 0 1180 520" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+
+<script>
+// Authentic slice of the real timeline (content.ts), X = time → right→left flow.
+// thread → Z layer index (the separable depth axis that survives a layout change).
+const THREADS = {
+  foundational:        { z: 0, color: "#f59e0b" },
+  growth:              { z: 1, color: "#57e0a8" },
+  savanna:             { z: 2, color: "#6ea8ff" },
+  major_projects:      { z: 3, color: "#c084fc" },
+  financial_interest:  { z: 4, color: "#fbbf24" },
+};
+const TYPE_ICON = { event: "◆", concept: "✦", person: "●", project: "▣" };
+
+// x,y are stand-ins for whatever the layout engine emits (today's lanes or
+// PLE-114's zoned layout). The Z spike only consumes (x,y) — it never computes them.
+const NODES = [
+  { id:"a", x: 40,  y: 60,  type:"event",   thread:"foundational",       title:"Pleet LLC officially formed", meta:"Event · Foundational · 2026-02-02", badge:null },
+  { id:"b", x: 300, y: 30,  type:"event",   thread:"foundational",       title:"First meeting — Kayla Lee, NCARB", meta:"Event · Foundational · 2026-01-20", badge:null },
+  { id:"c", x: 300, y: 150, type:"event",   thread:"growth",             title:'Brady Deaton inbound — "3D Print"', meta:"Event · Growth · 2026-04-01", badge:null },
+  { id:"d", x: 560, y: 110, type:"event",   thread:"growth",             title:'"Lunch with Pleet" — Brady, Denison, LG', meta:"Event · Growth · 2026-04-06", badge:null },
+  { id:"e", x: 560, y: 250, type:"concept", thread:"major_projects",     title:"Skyland 3D ROM estimate (competing bid)", meta:"Concept · Major Projects · 2026-04-08", badge:"D 72" },
+  { id:"f", x: 820, y: 40,  type:"event",   thread:"savanna",            title:"Intro to Savanna Schools via Adam Newman", meta:"Event · Savanna · 2026-04-14", badge:null },
+  { id:"g", x: 820, y: 300, type:"event",   thread:"financial_interest", title:'"Meet Bo & LG" — Bo Jett (IBC Bank)', meta:"Event · Financial Interest · 2026-04-23", badge:null },
+  { id:"h", x:1010, y: 60,  type:"event",   thread:"savanna",            title:"Savanna — board approval", meta:"Event · Savanna · 2026-06-10", badge:"D 88" },
+];
+const EDGES = [
+  ["a","b"], ["a","c"], ["c","d"], ["c","e"], ["d","f"], ["d","g"], ["f","h"], ["e","d"],
+];
+const byId = Object.fromEntries(NODES.map(n => [n.id, n]));
+
+const plane = document.getElementById("plane");
+const edges = document.getElementById("edges");
+let ZD = 150;
+
+// Build nodes
+for (const n of NODES) {
+  const t = THREADS[n.thread];
+  const el = document.createElement("div");
+  el.className = "node";
+  el.dataset.id = n.id;
+  el.style.setProperty("--accent", t.color);
+  el.style.left = n.x + "px"; el.style.top = n.y + "px";
+  el.innerHTML =
+    '<span class="bar"></span>' +
+    '<div class="icon">' + (TYPE_ICON[n.type]||"◆") + '</div>' +
+    '<div class="body"><div class="title">' + n.title + '</div>' +
+      '<div class="meta">' + n.meta + '</div></div>' +
+    (n.badge ? '<span class="badge">' + n.badge + '</span>' : '') +
+    '<span class="depth-tag">z' + t.z + ' · ' + n.thread.replace(/_/g," ") + '</span>';
+  plane.appendChild(el);
+  n._el = el;
+}
+
+function nodeCenter(n) {
+  return { x: n.x + 101, y: n.y + 30, z: THREADS[n.thread].z };
+}
+
+function render() {
+  // Lift each node to its thread's Z layer
+  for (const n of NODES) {
+    const z = THREADS[n.thread].z * (ZD / 4);
+    n._el.style.transform = "translateZ(" + z.toFixed(1) + "px)";
+  }
+  // Draw edges as elbow (octopus-style) orthogonal connectors, projected flat
+  // on the plane; depth comes from the plane rotation + per-node Z lift.
+  let d = "";
+  let paths = "";
+  for (const [s, t] of EDGES) {
+    const a = nodeCenter(byId[s]), b = nodeCenter(byId[t]);
+    const midx = (a.x + b.x) / 2;
+    const path = `M ${a.x} ${a.y} H ${midx} V ${b.y} H ${b.x}`;
+    const col = THREADS[byId[s].thread].color;
+    paths += `<path d="${path}" stroke="${col}"></path>`;
+  }
+  edges.innerHTML = paths;
+}
+
+// Rotation control
+const rx = document.getElementById("rx"), ry = document.getElementById("ry"), zd = document.getElementById("zd");
+function apply() {
+  const X = +rx.value, Y = +ry.value;
+  ZD = +zd.value;
+  plane.style.transform = `rotateX(${X}deg) rotateY(${Y}deg)`;
+  document.getElementById("rxv").textContent = X + "°";
+  document.getElementById("ryv").textContent = Y + "°";
+  document.getElementById("zdv").textContent = ZD;
+  render();
+}
+[rx, ry, zd].forEach(s => s.addEventListener("input", apply));
+
+// Drag-to-rotate (the interactive prototype gesture)
+const scene = document.getElementById("scene");
+let drag = null;
+scene.addEventListener("pointerdown", e => { drag = { x: e.clientX, y: e.clientY, rx: +rx.value, ry: +ry.value }; });
+window.addEventListener("pointermove", e => {
+  if (!drag) return;
+  ry.value = Math.max(-35, Math.min(35, drag.ry + (e.clientX - drag.x) * 0.35));
+  rx.value = Math.max(-32, Math.min(8, drag.rx - (e.clientY - drag.y) * 0.35));
+  apply();
+});
+window.addEventListener("pointerup", () => drag = null);
+
+apply();
+</script>
+</body>
+</html>

@@ -12,7 +12,7 @@
 2. **More organization & vertical (Y) space** — spread info up/down as events/persons flow along X through time.
 3. **Octopus-tentacle routing** — connectors reach / spindle out from a node toward concepts using **orthogonal (elbow)** routing, not curved/crossing edges.
 
-> **Scope note — Z-plane / 3D is NOT in this ticket.** PLE-110 also requested a Z-plane to rotate the flow in 3D; that was routed to **CTO** and is a separate workstream. PLE-114 is the 2D layout + routing redesign only. Calling it out so the board knows the omission is deliberate, not missed.
+> **Scope note — Z-plane / 3D *build* is NOT in this ticket; the depth *design direction* now lives here.** PLE-110 also requested a Z-plane to rotate the flow in 3D; the *build* was routed to **CTO** under [PLE-115](/PLE/issues/PLE-115) (feasibility proven via CSS-3D spike). Per the CTO's design-gate ask, the **depth treatment is specified in §10 below** so X, Y, and Z are designed as one coherent system rather than bolted together later. PLE-114 still ships the 2D layout + routing (§1–§9); §10 is the design contract PLE-115's build consumes. The separation that makes this safe: **the layout engine emits (x, y); Z is a separable transform layer applied over that output** — so depth rides on top of this zoned layout unchanged.
 
 ---
 
@@ -120,8 +120,65 @@ No conflict. The DetailPanel is a **docked** surface (desktop right column `flex
 
 ---
 
-## 9. Handoff & next step
+## 10. Depth / Z-plane treatment (design contract for PLE-115)
 
-**Stage ② — board direction-check (this ticket, now):** CEO carries the mockup renders to Lawrence. Direction question, not pixel question: *Are chapter columns the right zone unit (vs thematic threads)? Is octopus-to-hub orthogonal routing the reach he meant? Tints subtle enough?*
+This section is the UX design gate for the Z-plane. It defines *how* depth should look and behave so the CTO's CSS-3D build ([PLE-115](/PLE/issues/PLE-115), Approach A) integrates onto this layout coherently. **Grounded in real renders this run** of the feasibility spike at both the spike's pose and my recommended pose — see `docs/design/renders/ple115-uxgate-{desktop-1440,mobile-390,recommended-desktop}.png`.
 
-On board "yes" → **stage ③ Eng build**: assign Eng Lead with `layout.ts` (chapter-zone computation + sub-container bounds), `FlowCanvas.tsx` (zone/sub-container render layer + axis under zones), edge config (`smoothstep` + multi-handle + handle-selection), `flowTheme.ts`/`global.css` (the 5 proposed tokens). Then **stage ④** UX visual-truth render before done.
+### 10.1 The non-negotiable: 3D is a *mode*, not the default
+The board's accepted look (PLE-92) is a readable left→right time flow. **The canvas loads flat (0° / true 2D).** Depth is engaged by an explicit, reversible **"3D depth" toggle** in the HUD; engaging it animates the plane to the default tilt pose. Rationale: Jakob's Law (the timeline must read on load the way the board already approved), and the render proves a steep default both costs legibility and taxes hit-testing for every user. Flat is always one tap away — depth never becomes a wall between the user and the data. *Recognition over recall, Forgiveness (reversible), Aesthetic-Usability without sacrificing the base reading.*
+
+### 10.2 Which semantic variable maps to Z → **story `thread`** (v1 default)
+Depth encodes the **`thread`** identity (the same `--thread-*` keys already driving node/edge color in §4 and sub-containers in §2). Each thread lifts to its own parallel Z layer.
+- **Why thread:** it directly de-crosses edges — co-thread connectors stay in-plane, only cross-thread tentacles bridge planes — which *reinforces* the octopus de-crossing goal of §3 rather than competing with it. And it makes X/Y/Z **one** semantic system: thread = color in 2D, thread = depth in 3D. No new variable to learn.
+- **Color-independence / accessibility:** because depth is *redundant* with color, depth perception is never the sole channel for meaning (WCAG — don't rely on a single perceptual cue; supports users who can't resolve 3D foreshortening).
+- **Documented v1.1 alternatives** (selectable depth axis, not v1 scope): `confidence` (confirmed nodes forward / unverified receded — ties to the source-ledger work, [PLE-105](/PLE/issues/PLE-105)) and `type` (NodeType). v1 ships `thread` only; the axis selector is a deliberate later extension.
+
+### 10.3 Octopus hubs in depth
+A `concept` hub (§3.3) receives `converges_on` tentacles from **multiple** threads, so it cannot live on one thread plane. **Hub/`concept` nodes sit at the z=0 ground plane**; thread tentacles descend/ascend to them. The hub literally becomes the convergence point in depth as well as in plane — the octopus body sits "on the floor," arms reaching down from each thread layer.
+
+### 10.4 Tilt range, clamp, and default pose (desktop)
+From the renders: past ~35° Y the far cards recede too hard and DOM hit-testing degrades (matches CTO's ~45° finding); the spike's -24°/34° wastes vertical canvas and crowds the right edge. The gentler recommended pose keeps all cards frontal and legible.
+| Param | Clamp | Default (on toggle-on) |
+|-------|-------|------------------------|
+| `rotateY` | **−35° … +35°** | **+22°** |
+| `rotateX` | **−32° … +8°** (tilt top away; only slight forward) | **−18°** |
+| `perspective` | fixed | `1500px`, origin `50% 50%` |
+| z-gap between thread layers | token-driven | `--zplane-layer-gap` (proposed, §10.7) |
+- **Snap-to-flat** preset returns to 0°/0° for precise interaction/selection (overlay an invisible flat pick-plane if click accuracy drifts near the clamp edges).
+- Discrete **pose presets** ("Flat · Tilt · Side") in addition to drag — recognition over recall, and a non-drag path for motor accessibility.
+
+### 10.5 Mobile (390×844) — flatter and secondary
+The mobile render confirms steep 3D is unusable at 390px (cards clip off both edges; HUD eats the top third). On mobile the **stacked chapter bands (§6) remain the primary navigation**; 3D is a desktop-first delighter.
+- 3D toggle is **off by default and visually de-emphasized** on mobile.
+- If engaged: **flatter clamp `rotateY −18°…+18°`, `rotateX −12°…0°`**, gentler perspective, and the rotation control **collapses into the existing mobile overlay dock** ([PLE-97](/PLE/issues/PLE-97)) rather than a fixed panel.
+
+### 10.6 The fixed 2D HUD invariant (what must NOT rotate)
+These stay screen-fixed as a flat HUD and **never** rotate with the plane (the spike proves this for the control panel; extend the rule):
+- PLE-92 **time axis + month ticks + Today marker**, the **legend**, **zone headers / chapter labels**, the **DetailPanel** (PLE-102), and the **rotation control** itself.
+- **What DOES rotate with the plane:** nodes, edges/tentacles, zone column tints, and sub-container regions — they are the flow substrate and must stay co-planar with the cards.
+
+### 10.7 Motion, accessibility, tokens
+- **`prefers-reduced-motion`:** no tilt animation — snap directly to the target pose; never auto-orbit.
+- Toggle/preset controls ≥ **44px** touch targets (PLE-97); keyboard: arrows nudge rotation when the control is focused; toggle is a labeled switch, not icon-only.
+- **Doherty:** rotation is compositor-driven CSS transforms (Approach A) → stays < 400ms / 60fps; keep the `.08s linear` follow from the spike for drag, ease for preset jumps.
+- **Proposed system tokens** (→ design-system owner, same posture as §5): `--zplane-layer-gap` (z-distance between thread layers), `--zplane-perspective` (`1500px`), `--zplane-tilt-default-x` (`-18deg`), `--zplane-tilt-default-y` (`22deg`). Tilt **clamps** are interaction constants, not visual tokens. No one-off values in the build.
+
+### 10.8 Acceptance criteria for the Z build (additive to §8, owned by PLE-115)
+9. Canvas loads flat 2D; a reversible "3D depth" toggle animates to the default pose in §10.4; toggling off restores exact 2D.
+10. Depth encodes `thread`; co-thread edges stay in-plane, cross-thread tentacles bridge planes; `concept` hubs sit at z=0.
+11. Tilt is clamped to §10.4 (desktop) / §10.5 (mobile); a Flat snap preset exists.
+12. The §10.6 HUD set stays screen-fixed and unrotated at every pose; nodes/edges/zone tints/sub-containers rotate together rigidly.
+13. `prefers-reduced-motion` snaps without animation; controls meet §10.7 a11y/target-size rules.
+14. Visual-truth: 3D-on renders legible at **1440×900** and the flatter mobile clamp legible at **390×844**.
+
+---
+
+## 11. Handoff & next step
+
+**Stage ② — board direction-check (this ticket, now):** CEO carries the mockup renders to Lawrence. Direction questions, not pixel questions:
+- **X/Y (this spec §1–§9):** Are chapter columns the right zone unit (vs thematic threads)? Is octopus-to-hub orthogonal routing the reach he meant? Tints subtle enough?
+- **Z / depth (§10, coordinated with [PLE-115](/PLE/issues/PLE-115)):** Is **3D-as-an-opt-in-mode over a flat default** the right call, or does the board want the timeline to *open* tilted? Is **story-thread → depth** the right thing to encode in Z (vs confidence / type)? Compare `ple115-uxgate-recommended-desktop.png` (my gentler v1 default) against the spike's `zplane-desktop.png`.
+
+On board "yes" →
+- **stage ③ Eng build (X/Y)**: assign Eng Lead with `layout.ts` (chapter-zone computation + sub-container bounds), `FlowCanvas.tsx` (zone/sub-container render layer + axis under zones), edge config (`smoothstep` + multi-handle + handle-selection), `flowTheme.ts`/`global.css` (the 5 proposed tokens).
+- **Z build stays on [PLE-115](/PLE/issues/PLE-115)/CTO**, consuming §10 as its design contract, integrating *after* this layout lands (separable-Z principle). UX runs **stage ④ visual-truth** on both surfaces before done.
