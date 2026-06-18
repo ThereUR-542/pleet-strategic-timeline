@@ -58,7 +58,7 @@ Replace React Flow's default **bezier** edges with **orthogonal (elbow)** routin
 **Eng spec:**
 1. **Edge type → `smoothstep`** (orthogonal segments with softened corners; `borderRadius: 8` = `--space-2`). Use `step` only if the board prefers hard 90° corners; `smoothstep` matches the rounded connectors in the Zoho reference and reads cleaner at density.
 2. **Multi-handle nodes.** Give each `StageNode` source+target handles on **left & right**; give `concept` **hub** nodes handles on **all four sides** (top/right/bottom/left). At layout time, pick the handle pair that minimizes the connector's path length / crossings — this is what makes tentacles "reach efficiently" toward a concept from whatever direction.
-3. **Hub pattern.** A `concept` node (e.g. **Equipment Demand N(t)**) is the octopus body: multiple `converges_on` tentacles route in from Savanna, Oswego-demand, Manufacturing, and tentacles route *out* (`demonstrates`, `finances`) to other concepts. Hub nodes get the pill shape + `concept` border to read as a convergence point, not a card.
+3. **Hub pattern.** A `concept` node (e.g. **Equipment Demand N(t)**) is the octopus body: ≥3 tentacles converge in **regardless of EdgeKind**, and tentacles route *out* to other concepts. Hubs are detected **structurally** (any `concept` with ≥3 in-edges → octopus body: 4-side handles + pill + `concept` border to read as a convergence point, not a card), *not* by edge kind. **Data note (verified PLE-121):** N(t) (`n-equipment-demand`) is reached by **6** converging tentacles whose kinds are `depends_on`/`demonstrates` ("building demand") — that is the truthful relationship and must not be relabeled `converges_on` to match a spec word. The literal `converges_on` cluster correctly converges on **Mayor Nichols** (`person`, 8 edges), which renders as its own person-hub. Both read as octopus bodies; the visual intent is satisfied without falsifying edge semantics.
 4. **Crossing-min preserved (PLE-92).** Orthogonal routing + per-edge handle selection + lane-offsetting parallel edges keeps crossings down. Bundle co-directional edges on shared vertical lanes between columns.
 5. **EdgeKind keys unchanged (PLE-100).** Color and weight still come from `flowTheme.EDGE_COLOR` / `EDGE_KIND_LABEL`. `finances` stays gold + dashed; `finances`/`converges_on` stay thicker (1.8px). Routing geometry changes; the semantic key system does **not**.
 
@@ -111,7 +111,7 @@ No conflict. The DetailPanel is a **docked** surface (desktop right column `flex
 
 1. Canvas renders 5 data-derived chapter zones as tinted columns with headers; PLE-92 month axis + Today marker visible beneath; zone boundaries align to chapter date ranges.
 2. Thread clusters render as tinted sub-containers using the token recipe in §2.
-3. Edges are orthogonal (`smoothstep`), multi-handle, EdgeKind-colored/weighted per PLE-100; ≥1 `concept` hub shows ≥3 converging `converges_on` tentacles.
+3. Edges are orthogonal (`smoothstep`), multi-handle, EdgeKind-colored/weighted per PLE-100; ≥1 `concept` hub shows ≥3 converging tentacles (**any EdgeKind** — structural detection, see §3.3 data note). N(t) renders as the concept hub with 6 converging tentacles.
 4. Nodes use full zone height (more Y spread); no node overlap (hard constraint retained).
 5. DetailPanel (PLE-102) opens docked with canvas reflow, no overlap, at both viewports.
 6. Mobile collapses to stacked chapter bands with chapter pager + horizontal rails + tentacle chips.
