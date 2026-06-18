@@ -170,7 +170,7 @@ function TimelineAxisLayer({
   axis: TimelineAxis;
   width: number;
   height: number;
-  stems: { cx: number; cy: number }[];
+  stems: { cx: number; cy: number; ghost?: boolean }[];
 }) {
   const oy = axis.y;
   return (
@@ -221,10 +221,23 @@ function TimelineAxisLayer({
           )}
         </g>
       ))}
-      {/* node date dots on the axis */}
-      {stems.map((s, i) => (
-        <circle key={`d${i}`} cx={s.cx} cy={oy} r={2.5} fill="#aeb6c6" />
-      ))}
+      {/* node date dots on the axis — ghost nodes get a hollow/dotted dot (§4) */}
+      {stems.map((s, i) =>
+        s.ghost ? (
+          <circle
+            key={`d${i}`}
+            cx={s.cx}
+            cy={oy}
+            r={3}
+            fill="#0c0f15"
+            stroke="#a9b2c6"
+            strokeWidth={1.4}
+            strokeDasharray="1.5 1.5"
+          />
+        ) : (
+          <circle key={`d${i}`} cx={s.cx} cy={oy} r={2.5} fill="#aeb6c6" />
+        ),
+      )}
       {/* today marker */}
       <line
         x1={axis.todayX}
@@ -283,7 +296,7 @@ function FixedFrame({
   axis: TimelineAxis;
   width: number;
   height: number;
-  stems: { cx: number; cy: number }[];
+  stems: { cx: number; cy: number; ghost?: boolean }[];
   zones: ZoneBand[];
 }) {
   const { x, y, zoom } = useViewport();
@@ -401,11 +414,17 @@ function MobileBands({
                   return (
                     <button
                       key={id}
-                      className={`flow-mnode${sel ? " flow-mnode--sel" : ""}${hubIds.has(id) ? " flow-mnode--hub" : ""}`}
+                      className={`flow-mnode${sel ? " flow-mnode--sel" : ""}${hubIds.has(id) ? " flow-mnode--hub" : ""}${n.isAntecedent ? " flow-mnode--antecedent" : ""}`}
                       style={{ ["--type" as string]: color }}
                       onClick={() => onNodeSelect(id)}
                     >
                       <span className="flow-mnode__kind">
+                        {n.isAntecedent && (
+                          <span className="meta-antecedent meta-antecedent--m">
+                            <span className="gly" aria-hidden="true" />
+                            antecedent
+                          </span>
+                        )}
                         {NODE_TYPE_LABEL[n.type]}{hubIds.has(id) ? " · hub" : ""}
                       </span>
                       <span className="flow-mnode__ttl">{n.title}</span>
@@ -505,6 +524,7 @@ function FlowCanvasInner({
         isHub: hubIds.has(n.id),
         zLayer: threadZLayer(n.thread, hubIds.has(n.id)),
         dimmed,
+        isAntecedent: n.isAntecedent === true,
       };
       return {
         id: p.id,
@@ -534,6 +554,33 @@ function FlowCanvasInner({
           hubIds.has(e.from),
           hubIds.has(e.to),
         );
+        // PLE-120 §4 ghost connector: an `other` edge OUT OF an antecedent node
+        // (fail → intro "motivated") renders as a soft violet dotted line with an
+        // open chevron arrowhead — matching the ghost register, softer than depends_on.
+        const isGhost = e.kind === "other" && nodeById.get(e.from)?.isAntecedent === true;
+        if (isGhost) {
+          return {
+            id: e.id,
+            source: e.from,
+            target: e.to,
+            sourceHandle,
+            targetHandle,
+            label: e.label ?? undefined,
+            type: "smoothstep",
+            pathOptions: { borderRadius: 8 },
+            markerEnd: { type: MarkerType.Arrow, width: 16, height: 16, color: "#a78bfa" },
+            style: {
+              stroke: "#a78bfa",
+              strokeWidth: 1.4,
+              strokeDasharray: "2 3",
+              opacity: dim ? 0.05 : 0.6,
+            },
+            labelStyle: { fill: "#c5b6f4", fontSize: 9.5, fontWeight: 500 },
+            labelBgStyle: { fill: "#11141b", fillOpacity: 0.82 },
+            labelBgPadding: [3, 2] as [number, number],
+            labelBgBorderRadius: 4,
+          };
+        }
         return {
           id: e.id,
           source: e.from,
@@ -557,11 +604,17 @@ function FlowCanvasInner({
           labelBgBorderRadius: 4,
         };
       });
-  }, [data.edges, posById, matchedNodeIds, hubIds]);
+  }, [data.edges, posById, matchedNodeIds, hubIds, nodeById]);
 
   const stems = useMemo(
-    () => layout.nodes.map((p) => ({ cx: p.cx, cy: p.cy })),
-    [layout],
+    () =>
+      layout.nodes.map((p) => ({
+        cx: p.cx,
+        cy: p.cy,
+        // PLE-120 §4: antecedent nodes get a hollow/dotted ghost dot on the axis.
+        ghost: nodeById.get(p.id)?.isAntecedent === true,
+      })),
+    [layout, nodeById],
   );
 
   const handleNodeClick: NodeMouseHandler = useCallback(

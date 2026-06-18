@@ -120,9 +120,18 @@
   font-size: var(--text-3xs);
   color: #8b94a7;
   letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+/* The metadata string sits in its own span so it ellipsis-truncates without
+   ever squeezing an inline chip (e.g. .meta-antecedent) sharing the row. */
+.flow-node__meta .meta-text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 .flow-node__badges {
   position: absolute;
@@ -166,6 +175,62 @@
 }
 .flow-node--dimmed {
   opacity: 0.22;
+}
+
+/* ── Ghost / antecedent node (PLE-120 §2/§3, PLE-127) ─────────────────────────
+   A distinct FOURTH register: an event that predates the thread it belongs to.
+   Three independent cues so it never reads as broken or as search-dimmed (.22):
+   (1) resting fade .6, (2) DOTTED border (≠ unconfirmed DASHED), (3) the inline
+   "antecedent" meta chip (§3). Full legibility restored on hover/select/focus. */
+:root {
+  --node-antecedent-opacity: 0.6; /* resting fade; → 1 on hover/select/focus */
+  --node-antecedent-border: rgba(255, 255, 255, 0.26); /* DOTTED ≠ unconfirmed dashed */
+  --node-antecedent-bar-opacity: 0.42; /* muted left type-accent bar */
+  --badge-antecedent-fill: rgba(167, 139, 250, 0.14); /* violet = meta-annotation register */
+  --badge-antecedent-text: #c5b6f4;
+  --badge-antecedent-border: rgba(167, 139, 250, 0.34);
+}
+.flow-node--antecedent {
+  opacity: var(--node-antecedent-opacity);
+  border-style: dotted;
+  border-color: var(--node-antecedent-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); /* flatter than live cards → sits "behind" */
+}
+.flow-node--antecedent .flow-node__bar {
+  opacity: var(--node-antecedent-bar-opacity);
+}
+/* the fade is a RESTING state only — full contrast the moment it gets attention */
+.flow-node--antecedent:hover,
+.flow-node--antecedent.flow-node--selected,
+.flow-node--antecedent:focus-within {
+  opacity: 1;
+}
+/* Inline "antecedent" chip: lives at the START of the meta row, NOT a second
+   bottom-right badge (the node already carries the D 42 demand badge there). */
+.meta-antecedent {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--text-3xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  padding: 1px var(--space-1);
+  border-radius: 4px;
+  color: var(--badge-antecedent-text);
+  background: var(--badge-antecedent-fill);
+  border: 1px solid var(--badge-antecedent-border);
+}
+/* CSS chevron-hook glyph ("‹", points back in time) — no icon font needed. */
+.meta-antecedent .gly {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border: 1.2px solid currentColor;
+  border-right: 0;
+  border-top: 0;
+  transform: rotate(45deg) translateY(-1px);
 }
 
 .flow-handle {
@@ -1061,6 +1126,19 @@
 .flow-mnode--sel {
   border-color: var(--node-project);
   box-shadow: 0 0 0 2px var(--node-project);
+}
+/* Ghost / antecedent on the mobile rail (PLE-120/PLE-127): dotted + faded,
+   restored to full opacity when selected. The inline chip carries the label. */
+.flow-mnode--antecedent {
+  opacity: var(--node-antecedent-opacity);
+  border-style: dotted;
+}
+.flow-mnode--antecedent.flow-mnode--sel {
+  opacity: 1;
+}
+.meta-antecedent--m {
+  margin-bottom: 3px;
+  text-transform: lowercase;
 }
 .flow-mnode__kind {
   font-size: 8.5px;

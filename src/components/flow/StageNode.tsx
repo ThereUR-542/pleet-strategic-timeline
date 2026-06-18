@@ -29,6 +29,9 @@ export interface StageNodeData {
   zLayer: number;
   /** Dimmed by the search filter (still visible, just receded). */
   dimmed: boolean;
+  /** Ghost / antecedent (PLE-120/PLE-127): predates its own thread; renders
+   *  faded + dotted + an inline "antecedent" meta chip. Orthogonal to confidence. */
+  isAntecedent: boolean;
   [key: string]: unknown;
 }
 
@@ -46,6 +49,7 @@ function StageNodeImpl({ data, selected }: NodeProps) {
     d.confidence === "unconfirmed" ? "flow-node--unconfirmed" : "",
     d.isFocal ? "flow-node--focal" : "",
     d.isHub ? "flow-node--hub" : "",
+    d.isAntecedent ? "flow-node--antecedent" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -86,7 +90,15 @@ function StageNodeImpl({ data, selected }: NodeProps) {
       />
       <div className="flow-node__body">
         <div className="flow-node__title">{d.title}</div>
-        <div className="flow-node__meta">{meta}</div>
+        <div className="flow-node__meta">
+          {d.isAntecedent && (
+            <span className="meta-antecedent" title="Antecedent — predates its own thread (PLE-120)">
+              <span className="gly" aria-hidden="true" />
+              antecedent
+            </span>
+          )}
+          <span className="meta-text">{meta}</span>
+        </div>
       </div>
       <div className="flow-node__badges">
         {d.isToday && <span className="flow-badge flow-badge--today">TODAY</span>}

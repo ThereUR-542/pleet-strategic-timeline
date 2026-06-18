@@ -79,6 +79,14 @@ export interface TimelineNode {
   citationIds: string[];
   confidence: Confidence;
   /**
+   * Ghost / antecedent visual state (PLE-120/PLE-127). True for events that
+   * predate the thread they belong to and motivate a later introduction (e.g.
+   * `n-savanna-bond-fail` 2026-04-07, before `n-savanna-intro` 2026-04-14).
+   * ORTHOGONAL to `confidence` — an antecedent can be confirmed or unconfirmed.
+   * Optional, defaults falsy; nothing flags/suppresses the antecedent.
+   */
+  isAntecedent?: boolean;
+  /**
    * Scannable key-fact bullets for the detail panel (PLE-101). Optional and
    * non-blocking: when absent the panel derives a fallback set from existing
    * fields. Each entry may be `"Key: value"` — the panel styles key vs. value.
