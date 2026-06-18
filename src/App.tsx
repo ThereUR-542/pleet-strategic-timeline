@@ -147,17 +147,21 @@ function TimelineApp() {
       <div className="global-chrome">
         <div className="chrome-tabs" role="tablist" aria-label="Views">
           <button
+            id="tab-timeline"
             className={`chrome-tab ${activeTab === "timeline" ? "chrome-tab-active" : ""}`}
             role="tab"
             aria-selected={activeTab === "timeline"}
+            aria-controls="panel-timeline"
             onClick={() => setActiveTab("timeline")}
           >
             Timeline
           </button>
           <button
+            id="tab-summary"
             className={`chrome-tab ${activeTab === "summary" ? "chrome-tab-active" : ""}`}
             role="tab"
             aria-selected={activeTab === "summary"}
+            aria-controls="panel-summary"
             onClick={() => setActiveTab("summary")}
           >
             Strategic Summary
@@ -192,7 +196,7 @@ function TimelineApp() {
 
       {/* ── Main content area ── */}
       {activeTab === "timeline" ? (
-        <>
+        <div id="panel-timeline" role="tabpanel" aria-labelledby="tab-timeline" tabIndex={0}>
           {timelineContent}
           <Legend />
           <div className="footer-bar">
@@ -200,9 +204,11 @@ function TimelineApp() {
               Demand model is theoretical / illustrative — not audited fact (§6).
             </span>
           </div>
-        </>
+        </div>
       ) : (
-        <StrategicSummary data={TIMELINE_DATA} today={today} />
+        <div id="panel-summary" role="tabpanel" aria-labelledby="tab-summary" tabIndex={0}>
+          <StrategicSummary data={TIMELINE_DATA} today={today} />
+        </div>
       )}
 
       {/* ── Panels ── */}

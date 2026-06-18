@@ -65,6 +65,10 @@ h1 { margin: 0 0 12px; font-size: clamp(28px, 5vw, 42px); }
   .glass-panel { background: rgba(20, 22, 28, 0.95); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .citations-panel { animation: none; }
+}
+
 /* ── Citations open button ────────────────────────────────────────────────── */
 .citations-open-btn {
   display: inline-flex;
@@ -82,6 +86,7 @@ h1 { margin: 0 0 12px; font-size: clamp(28px, 5vw, 42px); }
   transition: background 0.15s, border-color 0.15s;
 }
 .citations-open-btn:hover { background: rgba(110, 168, 255, 0.22); border-color: var(--accent); }
+.citations-open-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ── Citations overlay + panel ───────────────────────────────────────────── */
 .citations-overlay {
@@ -136,6 +141,7 @@ h1 { margin: 0 0 12px; font-size: clamp(28px, 5vw, 42px); }
   transition: color 0.15s, background 0.15s;
 }
 .citations-close:hover { color: var(--text-0); background: rgba(255,255,255,0.08); }
+.citations-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .citations-list {
   list-style: none;
@@ -200,3 +206,4 @@ h1 { margin: 0 0 12px; font-size: clamp(28px, 5vw, 42px); }
   transition: opacity 0.15s, background 0.15s;
 }
 .intext-marker:hover { opacity: 1; background: rgba(110, 168, 255, 0.15); }
+.intext-marker:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; opacity: 1; }
