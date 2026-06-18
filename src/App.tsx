@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, lazy, Suspense } from "react";
 import type { Lane, TimelineData } from "./data/types";
 import { loadTimelineBundle } from "./data/loader";
 import { resolveToday } from "./lib/temporal";
@@ -20,6 +20,18 @@ import "./styles/flow.css";
 
 type ViewTab = "flow" | "summary";
 
+// ── Dev-only connection editor (PLE-137). Lazy + DEV-gated: the public prod
+// build never reaches this branch, so no repo-write surface ships to the live
+// static site. Open at /editor under `npm run dev`.
+const ConnectionEditor = lazy(() => import("./editor/ConnectionEditor"));
+function isEditorRoute() {
+  return (
+    import.meta.env.DEV &&
+    typeof window !== "undefined" &&
+    window.location.pathname.replace(/\/$/, "") === "/editor"
+  );
+}
+
 // ── Loader shell (PLE-136): content is fetched from /data/*.yaml at runtime.
 // While it loads we show a spinner; on any located failure we show a clear
 // error screen (never a blank page); on success we mount the timeline.
@@ -39,6 +51,14 @@ export function App() {
     );
     return () => { live = false; };
   }, [attempt]);
+
+  if (isEditorRoute()) {
+    return (
+      <Suspense fallback={<DataLoadingScreen />}>
+        <ConnectionEditor />
+      </Suspense>
+    );
+  }
 
   if (error) return <DataErrorScreen error={error} onRetry={() => setAttempt((a) => a + 1)} />;
   if (!data) return <DataLoadingScreen />;
