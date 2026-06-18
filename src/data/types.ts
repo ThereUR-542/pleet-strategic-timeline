@@ -78,6 +78,12 @@ export interface TimelineNode {
   media: MediaItem[];
   citationIds: string[];
   confidence: Confidence;
+  /**
+   * Scannable key-fact bullets for the detail panel (PLE-101). Optional and
+   * non-blocking: when absent the panel derives a fallback set from existing
+   * fields. Each entry may be `"Key: value"` — the panel styles key vs. value.
+   */
+  keyFacts?: string[];
 }
 
 export interface Edge {

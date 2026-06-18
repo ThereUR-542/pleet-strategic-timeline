@@ -175,11 +175,21 @@ function TimelineApp() {
             />
           </div>
           {selectedNode && (
-            <DetailPanel
-              node={selectedNode}
-              citations={TIMELINE_DATA.citations}
-              onClose={() => setSelectedId(null)}
-            />
+            <>
+              <div
+                className="detail-scrim"
+                aria-hidden="true"
+                onClick={() => setSelectedId(null)}
+              />
+              <DetailPanel
+                node={selectedNode}
+                citations={TIMELINE_DATA.citations}
+                edges={TIMELINE_DATA.edges}
+                nodes={TIMELINE_DATA.nodes}
+                today={today}
+                onClose={() => setSelectedId(null)}
+              />
+            </>
           )}
         </div>
       ) : (

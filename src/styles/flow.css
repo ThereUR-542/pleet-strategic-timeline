@@ -285,15 +285,18 @@
   border-radius: 2px;
 }
 
-/* ── Docked detail panel ─────────────────────────────────────────────────── */
+/* ── Docked detail panel (PLE-102, per PLE-101 spec) ─────────────────────────
+   `--type` is set inline from flowTheme.NODE_COLOR; `--ek` (per chip) from
+   EDGE_COLOR. Type-keyed top border + tag + bullet markers all read from it. */
 .detail-panel {
-  flex: 0 0 380px;
-  width: 380px;
+  flex: 0 0 400px;
+  width: 400px;
   max-width: 42vw;
   display: flex;
   flex-direction: column;
-  background: #0e1117;
+  background: var(--panel, #0e1117);
   border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 2px solid var(--type, #94a3b8);
   min-height: 0;
   animation: detail-in 0.18s ease;
 }
@@ -304,54 +307,98 @@
 @media (prefers-reduced-motion: reduce) {
   .detail-panel { animation: none; }
 }
+/* Bottom-sheet grabber — only shown on the mobile sheet (see media query). */
+.detail-panel__grabber { display: none; }
+
 .detail-panel__head {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2-5);
-  padding: var(--space-4-5) var(--space-4-5) var(--space-3-5);
+  position: relative;
+  padding: var(--space-5) var(--space-5) var(--space-4);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
-.detail-panel__dot {
-  flex: 0 0 12px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  margin-top: var(--space-1);
+.detail-panel__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  font-size: var(--text-2xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--type, #94a3b8);
+  background: color-mix(in srgb, var(--type, #94a3b8) 14%, transparent);
+  padding: var(--space-1) var(--space-2-5);
+  border-radius: var(--radius-chip);
 }
-.detail-panel__headtext { flex: 1 1 auto; min-width: 0; }
+.detail-panel__tag-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
 .detail-panel__title {
-  margin: 0;
-  font-size: var(--text-xl);
+  margin: var(--space-2-5) 0 0;
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-bold);
   line-height: var(--leading-tight);
+  color: var(--text-hi);
+  padding-right: var(--space-7);
 }
 .detail-panel__meta {
-  margin: var(--space-1) 0 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-1-5) 0 0;
   font-size: var(--text-xs);
-  color: #8b94a7;
+  color: var(--text-low);
+}
+.detail-panel__date { font-variant-numeric: tabular-nums; }
+.detail-panel__state {
+  font-size: var(--text-3xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 1px var(--space-1-5);
+  border-radius: var(--radius-chip);
+}
+.detail-panel__state--past {
+  color: var(--text-low);
+  background: rgba(255, 255, 255, 0.06);
+}
+.detail-panel__state--today {
+  color: #0a0c11;
+  background: var(--node-project, #57e0a8);
+}
+.detail-panel__state--projected {
+  color: #6ea8ff;
+  background: rgba(110, 168, 255, 0.12);
 }
 .detail-panel__close {
-  flex: 0 0 auto;
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
   background: none;
   border: none;
-  color: #8b94a7;
+  color: var(--text-low);
   font-size: var(--text-xl);
   cursor: pointer;
-  padding: var(--space-0-5) var(--space-2);
-  border-radius: 6px;
+  border-radius: 8px;
   line-height: var(--leading-none);
 }
-.detail-panel__close:hover { color: #f4f6fb; background: rgba(255, 255, 255, 0.08); }
+.detail-panel__close:hover { color: var(--text-hi); background: rgba(255, 255, 255, 0.08); }
 .detail-panel__scroll {
   flex: 1 1 auto;
   overflow-y: auto;
-  padding: var(--space-4) var(--space-4-5) var(--space-7);
+  padding: var(--space-4) var(--space-5) var(--space-7);
 }
 .detail-panel__note {
   font-size: var(--text-sm);
   color: #fbbf24;
   background: rgba(251, 191, 36, 0.1);
   border: 1px solid rgba(251, 191, 36, 0.3);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: var(--space-2) var(--space-2-5);
   margin-bottom: var(--space-3);
 }
@@ -360,17 +407,76 @@
   color: #57e0a8;
   background: rgba(87, 224, 168, 0.08);
   border: 1px solid rgba(87, 224, 168, 0.25);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: var(--space-2) var(--space-2-5);
   margin-bottom: var(--space-3);
+  font-variant-numeric: tabular-nums;
 }
 .detail-panel__body {
   font-size: var(--text-md);
   line-height: var(--leading-relaxed);
-  color: #d7dde9;
+  color: var(--text-mid);
 }
 .detail-panel__body p { margin: 0 0 var(--space-3); }
+.detail-panel__body strong { color: var(--text-hi); font-weight: var(--font-weight-semibold); }
 .detail-panel__body a { color: #6ea8ff; }
+
+/* Section label shared by Key facts + Connections. */
+.detail-panel__section-label {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-low);
+  margin: var(--space-4-5) 0 var(--space-2);
+}
+
+/* KEY FACTS — the core "more detail" addition (type-colored dot markers). */
+.detail-panel__facts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.detail-panel__facts li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-2-5);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--text-mid);
+}
+.detail-panel__facts li::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--type, #94a3b8);
+}
+.detail-panel__fact-key { color: var(--text-low); }
+.detail-panel__fact-value { color: var(--text-hi); }
+
+/* CONNECTIONS — EdgeKind-colored relation chips. */
+.detail-panel__conns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5);
+}
+.detail-panel__conn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  font-size: var(--text-xs);
+  color: var(--text-mid);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: var(--space-1) var(--space-2-5);
+  border-radius: var(--radius-chip);
+}
+.detail-panel__conn-rel { color: var(--ek, var(--text-mid)); font-weight: var(--font-weight-semibold); }
+
 .detail-panel__cites {
   margin-top: var(--space-4-5);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -380,7 +486,7 @@
   font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #8b94a7;
+  color: var(--text-low);
   margin: 0 0 var(--space-2);
 }
 .detail-panel__cites ol {
@@ -390,6 +496,26 @@
   color: #aeb6c6;
   line-height: var(--leading-relaxed);
 }
+
+/* FOOTER — compact, pinned source line (reference parity). */
+.detail-panel__foot {
+  flex: 0 0 auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--text-xs);
+  color: var(--text-low);
+  line-height: var(--leading-normal);
+}
+.detail-panel__foot-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: #6ea8ff;
+  cursor: pointer;
+  text-decoration: none;
+}
+.detail-panel__foot-link:hover { text-decoration: underline; }
 
 /* ── Demand Outlook (dedicated, separate panel) ──────────────────────────── */
 .demand-toggle,
@@ -489,13 +615,53 @@
 .demand-panel__verify.ok { color: #57e0a8; }
 .demand-panel__verify.fail { color: #ff6b6b; }
 
+/* Scrim — dims/blurs the graph behind the mobile bottom sheet so it reads as a
+   quieted background, not a competing surface. Hidden on desktop. */
+.detail-scrim { display: none; }
+
 @media (max-width: 760px) {
+  /* Mobile: detail is a bottom sheet over a dimmed graph (PLE-101 §1) — a
+     conventional sheet, NOT a card floating over a live, busy graph. */
+  .detail-scrim {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 19;
+    background: rgba(5, 6, 10, 0.55);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+    animation: scrim-in 0.18s ease;
+  }
+  @keyframes scrim-in { from { opacity: 0; } to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .detail-scrim { animation: none; } }
+
   .detail-panel {
     position: absolute;
-    inset: 0 0 0 auto;
-    flex-basis: 100%;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    flex-basis: auto;
     width: 100%;
     max-width: 100%;
+    max-height: 88%;
     z-index: 20;
+    border-left: none;
+    border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+    animation: sheet-in 0.2s ease;
+  }
+  @keyframes sheet-in {
+    from { transform: translateY(24px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) { .detail-panel { animation: none; } }
+
+  .detail-panel__grabber {
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: var(--radius-chip);
+    background: rgba(255, 255, 255, 0.22);
+    margin: var(--space-2) auto var(--space-0-5);
   }
 }
