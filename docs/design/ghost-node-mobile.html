@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>PLE-120 — Ghost node · Mobile 390×844</title>
+<link rel="stylesheet" href="ghost-node.css" />
+</head>
+<body style="padding:24px;">
+<p class="frame-label"><b>PLE-120 · Mobile</b> — 390×844</p>
+<div class="canvas" style="width:390px;height:844px;">
+
+  <div style="position:absolute;left:20px;top:20px;right:20px;">
+    <div class="h-title" style="font-size:15px;">Savanna thread — ghost antecedent</div>
+    <div class="h-sub" style="font-size:11px;">04-07 fail faded + ordered before the 04-14 intro. Dates unchanged.</div>
+  </div>
+
+  <!-- connectors layer (vertical stack) -->
+  <svg class="edges">
+    <defs>
+      <marker id="agm" markerWidth="11" markerHeight="11" refX="4" refY="7" orient="auto">
+        <path d="M0,0 L4,7 L8,0" fill="none" stroke="#a78bfa" stroke-width="1.2" opacity="0.7"/></marker>
+      <marker id="adm" markerWidth="11" markerHeight="11" refX="4" refY="7" orient="auto">
+        <path d="M0,0 L4,7 L8,0 Z" fill="#fbbf24" opacity="0.5"/></marker>
+    </defs>
+    <!-- ghost connector: bond-fail → intro -->
+    <path d="M 41 166 L 41 214" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="2 3" opacity="0.65" marker-end="url(#agm)"/>
+    <text x="52" y="194" font-size="9.5" fill="#c5b6f4" font-weight="600">motivated</text>
+    <!-- intro → approval -->
+    <path d="M 41 300 L 41 348" fill="none" stroke="#fbbf24" stroke-width="1.4" opacity="0.45" marker-end="url(#adm)"/>
+    <text x="52" y="328" font-size="9.5" fill="#cdd5e4" font-weight="500">depends on</text>
+  </svg>
+
+  <!-- ghost -->
+  <div class="node-pos" style="left:24px;top:100px;">
+    <div class="flow-node flow-node--antecedent" style="--node-accent:var(--node-event);width:342px;">
+      <span class="flow-node__bar"></span><span class="flow-node__icon"><span class="swatch"></span></span>
+      <div class="flow-node__body">
+        <div class="flow-node__title">Savanna Schools — first bond fails ($6.6M, Apr 2026)</div>
+        <div class="flow-node__meta"><span class="meta-antecedent"><span class="gly"></span>antecedent</span><span class="meta-text">Event · Savanna · 2026-04-07</span></div>
+      </div>
+      <div class="flow-node__badges"><span class="flow-badge flow-badge--demand">D 42</span></div>
+    </div>
+  </div>
+  <!-- intro -->
+  <div class="node-pos" style="left:24px;top:226px;">
+    <div class="flow-node flow-node--unconfirmed" style="--node-accent:var(--node-event);width:342px;">
+      <span class="flow-node__bar"></span><span class="flow-node__icon"><span class="swatch"></span></span>
+      <div class="flow-node__body">
+        <div class="flow-node__title">Introduction to Savanna Schools via Adam Newman</div>
+        <div class="flow-node__meta"><span class="meta-text">Event · Savanna · 2026-04-14</span></div>
+      </div>
+      <div class="flow-node__badges"><span class="flow-badge flow-badge--pending">pending</span></div>
+    </div>
+  </div>
+  <!-- approval -->
+  <div class="node-pos" style="left:24px;top:352px;">
+    <div class="flow-node" style="--node-accent:var(--node-event);width:342px;">
+      <span class="flow-node__bar"></span><span class="flow-node__icon"><span class="swatch"></span></span>
+      <div class="flow-node__body">
+        <div class="flow-node__title">Savanna Schools — board presentations &amp; approval</div>
+        <div class="flow-node__meta"><span class="meta-text">Event · Savanna · 2026-06-10</span></div>
+      </div>
+      <div class="flow-node__badges"><span class="flow-badge flow-badge--demand">D 55</span></div>
+    </div>
+  </div>
+
+  <!-- mobile state strip -->
+  <div class="states" style="position:absolute;left:20px;top:452px;right:20px;padding:16px;">
+    <h4 style="margin-bottom:12px;">Distinct from the other states</h4>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="flow-node flow-node--antecedent" style="--node-accent:var(--node-event);width:318px;">
+        <span class="flow-node__bar"></span><span class="flow-node__icon"><span class="swatch"></span></span>
+        <div class="flow-node__body"><div class="flow-node__title">Ghost · antecedent — 60% + dotted</div><div class="flow-node__meta"><span class="meta-antecedent"><span class="gly"></span>antecedent</span><span class="meta-text">Event · predates its thread</span></div></div>
+      </div>
+      <div class="flow-node flow-node--unconfirmed" style="--node-accent:var(--node-event);width:318px;">
+        <span class="flow-node__bar"></span><span class="flow-node__icon"><span class="swatch"></span></span>
+        <div class="flow-node__body"><div class="flow-node__title">Unconfirmed — dashed, full opacity</div><div class="flow-node__meta"><span class="meta-text">Event · pending verification</span></div></div>
+        <div class="flow-node__badges"><span class="flow-badge flow-badge--pending">pending</span></div>
+      </div>
+      <div class="flow-node" style="--node-accent:var(--node-event);width:318px;opacity:.22;">
+        <span class="flow-node__bar"></span><span class="flow-node__icon"><span class="swatch"></span></span>
+        <div class="flow-node__body"><div class="flow-node__title">Search-dimmed — 22%</div><div class="flow-node__meta"><span class="meta-text">Event · filtered out</span></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="note" style="position:absolute;left:20px;top:760px;right:20px;">
+    Tap restores full opacity → bottom-sheet detail (PLE-101). 44px touch target unchanged.
+  </div>
+</div>
+</body>
+</html>
