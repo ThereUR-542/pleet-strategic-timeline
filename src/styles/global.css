@@ -55,6 +55,15 @@
   --zone-border: rgba(255, 255, 255, 0.07);    /* 1px vertical divider between zones */
   --subgroup-fill-pct: 8%;                      /* thread-color mix for sub-container fill */
   --subgroup-border-pct: 26%;                   /* thread-color mix for sub-container border */
+
+  /* Z-plane / 3D depth mode (PLE-115 §10.7). Z is a SEPARABLE transform layer
+     applied over the (x, y) the layout engine emits — engaged only in 3D mode,
+     never altering the 2D layout. Tilt *clamps* are interaction constants in
+     FlowCanvas, not visual tokens. */
+  --zplane-perspective: 1500px;                 /* camera depth — fixed (§10.4) */
+  --zplane-layer-gap: 42px;                     /* z-distance between thread depth layers */
+  --zplane-tilt-default-x: -18deg;              /* default pose on toggle-on (§10.4) */
+  --zplane-tilt-default-y: 22deg;
 }
 
 * { box-sizing: border-box; }

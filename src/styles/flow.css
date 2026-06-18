@@ -826,6 +826,92 @@
   box-shadow: 0 0 0 1px rgba(192, 132, 252, 0.25), 0 6px 18px rgba(0, 0, 0, 0.42);
 }
 
+/* ── Z-plane 3D depth mode (PLE-115 §10, Approach A) ──────────────────────────
+   The flow PANE rotates as one rigid plane; nodes lift to per-thread Z layers
+   (--node-z, set inline per node). The HUD — RF Controls/MiniMap, the legend,
+   toolbar, 3D control, and DetailPanel — are siblings OUTSIDE .react-flow__pane,
+   so they never rotate (§10.6). Engaged only when .flow-canvas--zmode is set;
+   its absence restores exact flat 2D (§10.8 #9). Rotation comes from the CSS
+   vars --zp-rx / --zp-ry set on the canvas; clamps live in FlowCanvas. */
+.flow-canvas--zmode .react-flow__renderer {
+  perspective: var(--zplane-perspective);
+  perspective-origin: 50% 50%;
+}
+.flow-canvas--zmode .react-flow__pane {
+  transform: rotateX(var(--zp-rx, 0deg)) rotateY(var(--zp-ry, 0deg));
+  transform-style: preserve-3d;
+  transition: transform 0.35s ease;
+}
+/* preserve-3d down the chain so per-node translateZ reads as real depth, not
+   a flattened scale. RF owns each element's `transform`; we only add the
+   stacking context, which it does not set. */
+.flow-canvas--zmode .react-flow__viewport,
+.flow-canvas--zmode .react-flow__nodes,
+.flow-canvas--zmode .react-flow__node {
+  transform-style: preserve-3d;
+}
+.flow-canvas--zmode .flow-node {
+  transform: translateZ(var(--node-z, 0px));
+  transition: transform 0.35s ease, border-color 0.15s, box-shadow 0.15s,
+    opacity 0.15s;
+}
+.flow-canvas--zmode .flow-node:hover {
+  transform: translateZ(var(--node-z, 0px)) translateY(-1px);
+}
+/* §10.7 — reduced motion: snap to the pose, never animate the tilt. */
+@media (prefers-reduced-motion: reduce) {
+  .flow-canvas--zmode .react-flow__pane,
+  .flow-canvas--zmode .flow-node {
+    transition: none;
+  }
+}
+
+/* The 3D-depth control (fixed HUD, never rotates — §10.6). */
+.flow-zctl {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+.flow-zctl__row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+.flow-zctl__btn {
+  min-height: 32px;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-chip, 8px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(20, 22, 28, 0.85);
+  color: #cdd5e4;
+  font-size: var(--text-2xs, 11px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.flow-zctl__btn:hover {
+  background: rgba(40, 44, 54, 0.95);
+}
+.flow-zctl__btn[aria-pressed="true"],
+.flow-zctl__btn--on {
+  border-color: var(--node-concept);
+  color: #fff;
+  background: rgba(56, 40, 76, 0.92);
+}
+.flow-zctl__toggle {
+  min-height: 36px;
+  font-size: var(--text-xs, 12px);
+}
+.flow-zctl__slider {
+  width: 120px;
+  accent-color: #c084fc;
+}
+.flow-zctl__hint {
+  font-size: var(--text-3xs, 10px);
+  color: var(--text-low, #8b94a7);
+}
+
 /* ── Mobile (≤760px, PLE-97 + spec §6): stacked chapter bands ─────────────── */
 .flow-mbands {
   position: absolute;

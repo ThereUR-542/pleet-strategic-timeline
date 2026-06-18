@@ -24,6 +24,9 @@ export interface StageNodeData {
   isFocal: boolean;
   /** Octopus convergence point: a `concept` node with ≥3 converging edges. */
   isHub: boolean;
+  /** Z-plane depth layer (PLE-115 §10.2): thread→integer; hubs pinned to 0.
+   *  Only consumed in 3D mode via the `--node-z` var; ignored in flat 2D. */
+  zLayer: number;
   /** Dimmed by the search filter (still visible, just receded). */
   dimmed: boolean;
   [key: string]: unknown;
@@ -56,7 +59,12 @@ function StageNodeImpl({ data, selected }: NodeProps) {
   return (
     <div
       className={classes}
-      style={{ ["--node-accent" as string]: color }}
+      style={{
+        ["--node-accent" as string]: color,
+        // Z-plane depth lift (PLE-115 §10.2). Read only under .flow-canvas--zmode;
+        // a flat 2D canvas ignores it entirely.
+        ["--node-z" as string]: `calc(var(--zplane-layer-gap) * ${d.zLayer ?? 0})`,
+      }}
       title={d.title}
     >
       <Handle id="tl" type="target" position={Position.Left} className="flow-handle" />

@@ -58,6 +58,34 @@ const HUB_MIN_INDEGREE = 3;
 const MOBILE_BP = 760;
 const MOBILE_MOUNT_ZOOM = 0.9;
 
+// ── Z-plane depth (PLE-115 §10) ──────────────────────────────────────────────
+// §10.2: which semantic variable maps to Z → story `thread`. Threads cluster
+// into chapter-aligned depth strata (mirrors spec §1's dominant-thread grouping)
+// so co-chapter threads sit near each other in depth. `concept` hubs are pinned
+// to z=0 (§10.8 #10) so converging tentacles meet on the base plane.
+const THREAD_Z_LAYER: Record<string, number> = {
+  foundational: 0,
+  growth: 1,
+  strategic_relationships: 1,
+  media_brand: 1,
+  savanna: 2,
+  oswego: 3,
+  major_projects: 3,
+  manufacturing: 4,
+  financial_interest: 4,
+};
+function threadZLayer(thread: string | null, isHub: boolean): number {
+  if (isHub) return 0;
+  return thread ? THREAD_Z_LAYER[thread] ?? 0 : 0;
+}
+
+// §10.4 desktop tilt clamps (interaction constants, not visual tokens).
+const TILT = { rxMin: -32, rxMax: 8, ryMin: -35, ryMax: 35 };
+const POSE_FLAT = { rx: 0, ry: 0 };
+const POSE_TILT = { rx: -18, ry: 22 }; // default on toggle-on (mirrors tokens)
+const POSE_SIDE = { rx: -10, ry: 34 };
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
 /** True when the viewport is at/under the mobile breakpoint; updates on resize. */
 function useIsMobile(): boolean {
   const query = `(max-width: ${MOBILE_BP}px)`;
@@ -364,6 +392,19 @@ function FlowCanvasInner({
   const { setCenter, fitView } = useReactFlow();
   const mobile = useIsMobile();
 
+  // Z-plane 3D depth (PLE-115 §10): opt-in MODE over a flat default (§10.1).
+  // `zMode` off ⇒ exact 2D; `pose` holds the clamped tilt while on.
+  const [zMode, setZMode] = useState(false);
+  const [pose, setPose] = useState(POSE_TILT);
+  const setTilt = useCallback(
+    (rx: number, ry: number) =>
+      setPose({
+        rx: clamp(rx, TILT.rxMin, TILT.rxMax),
+        ry: clamp(ry, TILT.ryMin, TILT.ryMax),
+      }),
+    [],
+  );
+
   const layout = useMemo(
     () => computeTimelineLayout(data.nodes, data.edges, today),
     [data, today],
@@ -409,6 +450,7 @@ function FlowCanvasInner({
         isToday: temporalStateFor(n, today) === "today",
         isFocal: n.id === FOCAL_ID,
         isHub: hubIds.has(n.id),
+        zLayer: threadZLayer(n.thread, hubIds.has(n.id)),
         dimmed,
       };
       return {
@@ -525,7 +567,15 @@ function FlowCanvasInner({
       nodesDraggable={false}
       nodesConnectable={false}
       proOptions={{ hideAttribution: true }}
-      className="flow-canvas"
+      className={`flow-canvas${zMode ? " flow-canvas--zmode" : ""}`}
+      style={
+        zMode
+          ? ({
+              ["--zp-rx"]: `${pose.rx}deg`,
+              ["--zp-ry"]: `${pose.ry}deg`,
+            } as React.CSSProperties)
+          : undefined
+      }
     >
       <Background variant={BackgroundVariant.Dots} gap={30} size={1} color="#20262f" />
       <ViewportPortal>
@@ -557,6 +607,51 @@ function FlowCanvasInner({
             Fit
           </button>
           {toolbar}
+        </Panel>
+      )}
+
+      {/* Z-plane 3D-depth control (PLE-115 §10). A fixed HUD — never rotates
+          (§10.6). Toggle engages 3D; presets + slider rotate within §10.4 clamps;
+          "Flat" snaps to 0°/0° (§10.8 #11). Off restores exact 2D (§10.8 #9). */}
+      {!compact && (
+        <Panel position="top-right" className="flow-zctl-dock">
+          <div className="flow-zctl">
+            <button
+              className={`flow-zctl__btn flow-zctl__toggle${zMode ? " flow-zctl__btn--on" : ""}`}
+              aria-pressed={zMode}
+              onClick={() => setZMode((v) => !v)}
+              title="Rotate the timeline into the Z-plane — depth encodes story thread"
+            >
+              {zMode ? "◳ 3D depth · On" : "◳ 3D depth · Off"}
+            </button>
+            {zMode && (
+              <>
+                <div className="flow-zctl__row" role="group" aria-label="Depth pose presets">
+                  <button className="flow-zctl__btn" onClick={() => setTilt(POSE_FLAT.rx, POSE_FLAT.ry)}>
+                    Flat
+                  </button>
+                  <button className="flow-zctl__btn" onClick={() => setTilt(POSE_TILT.rx, POSE_TILT.ry)}>
+                    Tilt
+                  </button>
+                  <button className="flow-zctl__btn" onClick={() => setTilt(POSE_SIDE.rx, POSE_SIDE.ry)}>
+                    Side
+                  </button>
+                </div>
+                <div className="flow-zctl__row">
+                  <input
+                    className="flow-zctl__slider"
+                    type="range"
+                    min={TILT.ryMin}
+                    max={TILT.ryMax}
+                    value={pose.ry}
+                    aria-label="Rotate timeline around the vertical axis"
+                    onChange={(e) => setTilt(pose.rx, Number(e.target.value))}
+                  />
+                </div>
+                <span className="flow-zctl__hint">Depth = story thread · slider rotates</span>
+              </>
+            )}
+          </div>
         </Panel>
       )}
 
