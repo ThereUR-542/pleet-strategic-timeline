@@ -1,9 +1,10 @@
 // =============================================================================
-// FlowCanvas (PLE-92, v3) — the node-graph that replaces the rejected
-// glassmorphic timeline. React Flow + a dagre crossing-minimized layered layout
-// (see layout.ts): a small origin (Jan) that EXPANDS as the story evolves and
-// converges, time reading left→right by causality — the Sankey / Big-Bang shape
-// Lawrence asked for. Solid non-overlapping nodes, labeled arrow edges, pan/zoom.
+// FlowCanvas (PLE-92, v4) — node-graph on a real horizontal TIME AXIS. Board
+// direction: "I want to SEE time — a line with tics, each node above or below
+// its tick, to show the EVOLUTION." React Flow renders the solid icon-bearing
+// nodes + relationship edges; a ViewportPortal draws the month-ticked axis,
+// today marker, and a stem from every node down to its date — all panning and
+// zooming together. Detail opens in a docked side panel; nothing is stacked.
 // =============================================================================
 
 import { useCallback, useEffect, useMemo } from "react";
@@ -15,6 +16,7 @@ import {
   Controls,
   MiniMap,
   Panel,
+  ViewportPortal,
   MarkerType,
   Position,
   useReactFlow,
@@ -25,7 +27,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import type { TimelineData } from "../../data/types";
 import { temporalStateFor } from "../../lib/temporal";
-import { computeFlowLayout, NODE_W, NODE_H } from "./layout";
+import { computeTimelineLayout, NODE_H, type TimelineAxis } from "./layout";
 import { StageNode, type StageNodeData } from "./StageNode";
 import {
   NODE_COLOR,
@@ -35,7 +37,6 @@ import {
 } from "./flowTheme";
 
 const FOCAL_ID = "n-mayor-nichols";
-
 const NODE_TYPES = { stage: StageNode };
 
 interface Props {
@@ -45,10 +46,104 @@ interface Props {
   focusNodeId: string | null;
   matchedNodeIds: Set<string> | null;
   onNodeSelect: (id: string) => void;
-  /** Right-side toolbar slot (legend toggle, demand toggle, etc.). */
   toolbar?: React.ReactNode;
   /** Presenter mode: hide the title + toolbar panels, keep the graph + legend. */
   compact?: boolean;
+}
+
+// ── The time axis, drawn in flow coordinates so it pans/zooms with the nodes ──
+function TimelineAxisLayer({
+  axis,
+  half,
+  stems,
+}: {
+  axis: TimelineAxis;
+  half: number;
+  stems: { cx: number; cy: number }[];
+}) {
+  const w = axis.xEnd - axis.xStart;
+  const h = half * 2;
+  const ox = axis.xStart;
+  const oy = half; // local y of the axis line
+
+  return (
+    <svg
+      width={w}
+      height={h}
+      style={{
+        position: "absolute",
+        left: axis.xStart,
+        top: -half,
+        pointerEvents: "none",
+        overflow: "visible",
+      }}
+    >
+      {/* projected (future) wash, right of today */}
+      <rect
+        x={axis.todayX - ox}
+        y={0}
+        width={Math.max(0, axis.xEnd - axis.todayX)}
+        height={h}
+        fill="rgba(110,168,255,0.035)"
+      />
+      {/* stems */}
+      {stems.map((s, i) => {
+        const x = s.cx - ox;
+        const cardEdge = s.cy < 0 ? s.cy + NODE_H / 2 : s.cy - NODE_H / 2;
+        const y1 = oy + Math.min(0, cardEdge);
+        const y2 = oy + Math.max(0, cardEdge);
+        return (
+          <line
+            key={i}
+            x1={x}
+            y1={y1}
+            x2={x}
+            y2={y2}
+            stroke="rgba(255,255,255,0.12)"
+            strokeWidth={1}
+          />
+        );
+      })}
+      {/* axis line */}
+      <line x1={0} y1={oy} x2={w} y2={oy} stroke="rgba(255,255,255,0.32)" strokeWidth={1.5} />
+      {/* month ticks + labels */}
+      {axis.ticks.map((t, i) => {
+        const x = t.x - ox;
+        return (
+          <g key={i}>
+            <line x1={x} y1={oy - 6} x2={x} y2={oy + 6} stroke="rgba(255,255,255,0.4)" strokeWidth={1} />
+            <text x={x} y={oy + 22} textAnchor="middle" fontSize={12} fill="#8b94a7">
+              {t.label}
+            </text>
+            {t.sub && (
+              <text x={x} y={oy + 38} textAnchor="middle" fontSize={11} fill="#6b7385" fontWeight={600}>
+                {t.sub}
+              </text>
+            )}
+          </g>
+        );
+      })}
+      {/* node date dots on the axis */}
+      {stems.map((s, i) => (
+        <circle key={`d${i}`} cx={s.cx - ox} cy={oy} r={2.5} fill="#aeb6c6" />
+      ))}
+      {/* today marker */}
+      <line
+        x1={axis.todayX - ox}
+        y1={0}
+        x2={axis.todayX - ox}
+        y2={h}
+        stroke="#ffffff"
+        strokeWidth={1.5}
+        strokeDasharray="4 4"
+        opacity={0.7}
+      />
+      <circle cx={axis.todayX - ox} cy={oy} r={4} fill="#ffffff" />
+      <text x={axis.todayX - ox + 7} y={oy - 8} fontSize={11} fontWeight={700} fill="#ffffff">
+        TODAY · {axis.today}
+      </text>
+    </svg>
+  );
 }
 
 function FlowCanvasInner({
@@ -64,7 +159,7 @@ function FlowCanvasInner({
   const { setCenter, fitView } = useReactFlow();
 
   const layout = useMemo(
-    () => computeFlowLayout(data.nodes, data.edges, today),
+    () => computeTimelineLayout(data.nodes, data.edges, today),
     [data, today],
   );
   const nodeById = useMemo(
@@ -81,7 +176,9 @@ function FlowCanvasInner({
       const n = nodeById.get(p.id)!;
       const dimmed = matchedNodeIds != null && !matchedNodeIds.has(p.id);
       const nodeData: StageNodeData = {
+        id: n.id,
         title: n.title,
+        summary: n.summary,
         type: n.type,
         thread: n.thread,
         effectiveDate: p.effectiveDate,
@@ -119,26 +216,26 @@ function FlowCanvasInner({
           target: e.to,
           label: e.label ?? undefined,
           type: "default",
-          animated: false,
-          markerEnd: {
-            type: MarkerType.ArrowClosed,
-            width: 16,
-            height: 16,
-            color,
-          },
+          markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15, color },
           style: {
             stroke: color,
-            strokeWidth: e.kind === "finances" || e.kind === "converges_on" ? 2 : 1.4,
+            strokeWidth: e.kind === "finances" || e.kind === "converges_on" ? 1.8 : 1.3,
             strokeDasharray: e.kind === "finances" ? "6 4" : undefined,
-            opacity: dim ? 0.07 : 0.55,
+            opacity: dim ? 0.05 : 0.4,
           },
-          labelStyle: { fill: "#cdd5e4", fontSize: 10, fontWeight: 500 },
-          labelBgStyle: { fill: "#11141b", fillOpacity: 0.85 },
-          labelBgPadding: [4, 2] as [number, number],
+          labelStyle: { fill: "#cdd5e4", fontSize: 9.5, fontWeight: 500 },
+          labelBgStyle: { fill: "#11141b", fillOpacity: 0.82 },
+          labelBgPadding: [3, 2] as [number, number],
           labelBgBorderRadius: 4,
         };
       });
   }, [data.edges, posById, matchedNodeIds]);
+
+  const stems = useMemo(
+    () => layout.nodes.map((p) => ({ cx: p.cx, cy: p.cy })),
+    [layout],
+  );
+  const half = layout.height / 2;
 
   const handleNodeClick: NodeMouseHandler = useCallback(
     (_evt, node) => {
@@ -147,12 +244,11 @@ function FlowCanvasInner({
     [onNodeSelect],
   );
 
-  // Presenter / focus → recenter on the focused node.
   useEffect(() => {
     if (!focusNodeId) return;
     const p = posById.get(focusNodeId);
     if (!p) return;
-    setCenter(p.x + NODE_W / 2, p.y + NODE_H / 2, { zoom: 1.1, duration: 600 });
+    setCenter(p.cx, p.cy, { zoom: 1.1, duration: 600 });
   }, [focusNodeId, posById, setCenter]);
 
   return (
@@ -163,15 +259,18 @@ function FlowCanvasInner({
       onNodeClick={handleNodeClick}
       onPaneClick={() => onNodeSelect("")}
       fitView
-      fitViewOptions={{ padding: 0.18 }}
-      minZoom={0.2}
+      fitViewOptions={{ padding: 0.12 }}
+      minZoom={0.15}
       maxZoom={2.5}
       nodesDraggable={false}
       nodesConnectable={false}
       proOptions={{ hideAttribution: true }}
       className="flow-canvas"
     >
-      <Background variant={BackgroundVariant.Dots} gap={28} size={1} color="#252b38" />
+      <Background variant={BackgroundVariant.Dots} gap={30} size={1} color="#20262f" />
+      <ViewportPortal>
+        <TimelineAxisLayer axis={layout.axis} half={half} stems={stems} />
+      </ViewportPortal>
       <Controls showInteractive={false} />
       <MiniMap
         pannable
@@ -184,26 +283,16 @@ function FlowCanvasInner({
 
       {!compact && (
         <Panel position="top-left" className="flow-titlecard">
-          <h1 className="flow-titlecard__title">Pleet LLC · Strategic Flow</h1>
+          <h1 className="flow-titlecard__title">Pleet LLC · Strategic Timeline</h1>
           <p className="flow-titlecard__sub">
-            How the venture grew — origin → expansion → convergence → future
+            How the venture evolved — Jan 2026 → today → projected · click any node
           </p>
         </Panel>
       )}
 
       {!compact && (
-        <Panel position="bottom-center" className="flow-timeribbon">
-          <span>Jan 2026</span>
-          <span className="flow-timeribbon__arrow" aria-hidden="true" />
-          <span className="flow-timeribbon__now">Today · Jun</span>
-          <span className="flow-timeribbon__arrow" aria-hidden="true" />
-          <span>Projected →</span>
-        </Panel>
-      )}
-
-      {!compact && (
         <Panel position="top-right" className="flow-toolbar">
-          <button className="flow-btn" onClick={() => fitView({ padding: 0.18, duration: 400 })}>
+          <button className="flow-btn" onClick={() => fitView({ padding: 0.12, duration: 400 })}>
             Fit
           </button>
           {toolbar}
@@ -216,10 +305,7 @@ function FlowCanvasInner({
           {(Object.keys(NODE_TYPE_LABEL) as Array<keyof typeof NODE_TYPE_LABEL>).map(
             (t) => (
               <span key={t} className="flow-legend__row">
-                <span
-                  className="flow-legend__swatch"
-                  style={{ background: NODE_COLOR[t] }}
-                />
+                <span className="flow-legend__swatch" style={{ background: NODE_COLOR[t] }} />
                 {NODE_TYPE_LABEL[t]}
               </span>
             ),
@@ -230,15 +316,7 @@ function FlowCanvasInner({
           {(["converges_on", "finances", "partners", "depends_on", "introduced"] as const).map(
             (k) => (
               <span key={k} className="flow-legend__row">
-                <span
-                  className="flow-legend__line"
-                  style={{
-                    background: EDGE_COLOR[k],
-                    ...(k === "finances"
-                      ? { backgroundImage: "none", opacity: 1 }
-                      : {}),
-                  }}
-                />
+                <span className="flow-legend__line" style={{ background: EDGE_COLOR[k] }} />
                 {EDGE_KIND_LABEL[k]}
               </span>
             ),

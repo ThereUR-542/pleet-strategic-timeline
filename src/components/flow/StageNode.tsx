@@ -1,16 +1,20 @@
 // =============================================================================
-// Custom React Flow node (PLE-92). A solid, self-contained card — never
-// translucent, never layered. Color accent + type, title, one-line meta, and
-// small badges for THEORETICAL demand score (§5.2) / unconfirmed status (§12).
+// Custom React Flow node (PLE-92, v4). A solid, self-contained card — never
+// translucent, never layered. Now with an ICON (researched org logo, else a
+// category glyph), a color accent by type, title, one-line meta, and small
+// badges for THEORETICAL demand score (§5.2) / unconfirmed status (§12).
 // =============================================================================
 
 import { memo } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import type { Confidence, NodeType } from "../../data/types";
 import { NODE_COLOR, NODE_TYPE_LABEL, threadLabel } from "./flowTheme";
+import { NodeIcon } from "./flowIcons";
 
 export interface StageNodeData {
+  id: string;
   title: string;
+  summary: string;
   type: NodeType;
   thread: string | null;
   effectiveDate: string | null;
@@ -48,6 +52,10 @@ function StageNodeImpl({ data, selected }: NodeProps) {
     >
       <Handle type="target" position={Position.Left} className="flow-handle" />
       <span className="flow-node__bar" aria-hidden="true" />
+      <NodeIcon
+        node={{ id: d.id, title: d.title, type: d.type, thread: d.thread, summary: d.summary }}
+        color={color}
+      />
       <div className="flow-node__body">
         <div className="flow-node__title">{d.title}</div>
         <div className="flow-node__meta">{meta}</div>

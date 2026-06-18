@@ -1,15 +1,15 @@
-// PLE-92: Flow-graph layout — proves the dagre layout places every node, keeps
-// Lawrence's hard constraint ("NOTHING stacked on top of something else"), and
-// flows left→right in time.
+// PLE-92: Timeline-axis layout — proves every node is placed on the axis, NOTHING
+// overlaps (Lawrence's hard constraint), nodes sit above/below the axis, and the
+// axis carries month ticks + a today marker reading left→right in time.
 
 import { describe, it, expect } from "vitest";
 import { NODES, EDGES } from "../../data/content";
-import { computeFlowLayout, effectiveDate, NODE_W, NODE_H } from "./layout";
+import { computeTimelineLayout, effectiveDate, NODE_W, NODE_H } from "./layout";
 
 const TODAY = "2026-06-17";
 
-describe("computeFlowLayout (dagre)", () => {
-  const layout = computeFlowLayout(NODES, EDGES, TODAY);
+describe("computeTimelineLayout", () => {
+  const layout = computeTimelineLayout(NODES, EDGES, TODAY);
 
   it("places every node exactly once", () => {
     expect(layout.nodes).toHaveLength(NODES.length);
@@ -22,16 +22,29 @@ describe("computeFlowLayout (dagre)", () => {
         const a = layout.nodes[i];
         const b = layout.nodes[j];
         const overlap =
-          Math.abs(a.x - b.x) < NODE_W && Math.abs(a.y - b.y) < NODE_H;
+          Math.abs(a.cx - b.cx) < NODE_W && Math.abs(a.cy - b.cy) < NODE_H;
         expect(overlap).toBe(false);
       }
     }
   });
 
-  it("flows left → right in time (early origin, later downstream)", () => {
+  it("puts every node above OR below the axis (never on it)", () => {
+    for (const n of layout.nodes) {
+      expect(Math.abs(n.cy)).toBeGreaterThanOrEqual(NODE_H / 2);
+    }
+  });
+
+  it("flows left → right in time (earlier date → smaller x)", () => {
     const formed = layout.nodes.find((n) => n.id === "n-pleet-formed")!;
     const printing = layout.nodes.find((n) => n.id === "n-oswego-printing")!;
-    expect(formed.x).toBeLessThan(printing.x);
+    expect(formed.cx).toBeLessThan(printing.cx);
+  });
+
+  it("builds a ticked axis with a today marker inside the span", () => {
+    expect(layout.axis.ticks.length).toBeGreaterThan(6);
+    expect(layout.axis.ticks.some((t) => t.label === "Jan" && t.sub === "2026")).toBe(true);
+    expect(layout.axis.todayX).toBeGreaterThan(layout.axis.xStart);
+    expect(layout.axis.todayX).toBeLessThan(layout.axis.xEnd);
   });
 
   it("buckets an undated node by its earliest dated neighbor", () => {
@@ -39,11 +52,5 @@ describe("computeFlowLayout (dagre)", () => {
     const bo = NODES.find((n) => n.id === "n-bo-jett")!;
     expect(bo.date).toBeNull();
     expect(effectiveDate(bo, EDGES, nodeMap)).not.toBeNull();
-  });
-
-  it("reports a positive canvas extent", () => {
-    expect(layout.width).toBeGreaterThan(NODE_W);
-    expect(layout.height).toBeGreaterThan(NODE_H);
-    expect(layout.maxBucket).toBeGreaterThan(layout.minBucket);
   });
 });
