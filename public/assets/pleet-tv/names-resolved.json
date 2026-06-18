@@ -1,8 +1,26 @@
 {
   "source": "Lawrence Gene (lg@arcangles.art), PLE-77 comments 2026-06-18",
-  "note": "Confirmed full names/titles for §12 name-verification items. Apply to person nodes; clear any 'pending verification' treatment for these.",
+  "note": "Confirmed full names/titles for §12 items. Apply to person nodes and citations; clear 'pending verification' for these. REMOVE struck contacts entirely.",
   "resolved": [
-    { "prdRef": "Joshua (Jun 23 Mayor meeting attendee, §8.6/§12)", "fullName": "Joshua Bowers", "photo": "/assets/pleet-tv/joshua-bowers.jpg", "confirmedAt": "2026-06-18" }
+    { "prdRef": "Joshua (Jun 23 Mayor meeting attendee, §8.6)", "fullName": "Joshua Bowers", "photo": "/assets/pleet-tv/joshua-bowers.jpg", "confirmedAt": "2026-06-18" },
+    { "prdRef": "Tim (Pleet General Counsel; Oswego property owner, §12)", "fullName": "Timothy C. Janak, Esq.", "title": "General Counsel", "confirmedAt": "2026-06-18" },
+    { "prdRef": "Amy Addington Smith (media partner, §8.5)", "fullName": "Amy Addington Smith", "title": "News and Podcasting", "note": "DISTINCT person from Amy K. Cook (BancFirst). Do not merge.", "confirmedAt": "2026-06-18" },
+    { "prdRef": "Amy / BancFirst (§8.6 financing, §12)", "fullName": "Amy K. Cook", "title": "Executive Vice President, BancFirst Jenks", "note": "NOT the same person as Amy Addington Smith.", "confirmedAt": "2026-06-18" },
+    { "prdRef": "Bo Jett (IBC Bank financing, §8.6/§9 #6)", "fullName": "Bo Jett", "title": "Senior Vice President, Commercial Lending — IBC Bank (Oklahoma)", "address": "3817 NW Expressway, Suite 100, Oklahoma City, OK 73112", "photo": "/assets/pleet-tv/bo-jett-card.png", "confirmedAt": "2026-06-18" },
+    { "prdRef": "Daniel Regan (Tulsa International Airport, §5.3/§8.7)", "fullName": "Daniel Regan", "title": "Director of Real Estate & Business Development, Tulsa Airports Improvement Trust (Tulsa International Airport)", "photo": "/assets/pleet-tv/daniel-regan-card.png", "confirmedAt": "2026-06-18" },
+    { "prdRef": "Aiman Hussain/Hussein — SQ4D (§8.4/§12 BLOCKER)", "fullName": "Aiman Hussein", "title": "VP of Operations, SQ4D LLC", "email": "Aiman@sq4d.com", "address": "400 David Court, Calverton, NY 11933", "note": "Lawrence spells surname 'Hussein' (PRD had 'Hussain'). SQ4D legal/business relationship is intentionally TBD — the timeline aims to advance that collaboration; frame the node as aspirational/in-discussion, not a signed relationship.", "confirmedAt": "2026-06-18" }
   ],
-  "stillOpen": ["Tim (full name+title)", "Bo Jett (full name + IBC title)", "Hayden Hanoch (full name + Gateway title)", "Amy/BancFirst (full name; same as Amy Addington Smith?)", "Gene Bulmash (title)", "Daniel Regan (title)", "Aiman Hussain (SQ4D role)", "Adam Newman (confirm)", "Mayor Monroe Nichols (official title)", "Scott Rackers / David Marshall (roles)"]
+  "remove": [
+    { "name": "Scott Rackers", "reason": "Lawrence: strike and remove (2026-06-18)" },
+    { "name": "David Marshall", "reason": "Lawrence: strike and remove (2026-06-18)" }
+  ],
+  "stillOpen": [
+    "Hayden Hanoch (full name + Gateway Bank/Gateway First title)",
+    "Gene Bulmash (title, City of Tulsa Housing)",
+    "Mayor Monroe Nichols (official title)",
+    "Adam Newman (confirm full name/spelling)",
+    "Cherokee Nation $40M / 1 Architecture contract details (confirm)",
+    "Real demand-score methodology (factors/weights/sources) — 'we'll have to work on that'",
+    "Pleet Revenue Maximization Model doc (Lawrence will load)"
+  ]
 }
