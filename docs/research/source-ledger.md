@@ -1,6 +1,6 @@
 # Pleet Strategic Timeline — Source Ledger (Research Lead)
 
-**Owner:** Research Lead · **Updated:** 2026-06-18 · **Standard:** every researchable claim carries ≥1 verifiable source; material claims carry **two independent** sources. Lawrence's own notes and the PRD are primary sources and are not subject to the double-sourcing rule, but where independent research **contradicts** a primary-source claim that contradiction is flagged for the board.
+**Owner:** Research Lead · **Updated:** 2026-06-18 (added §A6 Savanna Public Schools identity + bond dates, §A7 OSSBA Convention; closed a §D gap) · **Standard:** every researchable claim carries ≥1 verifiable source; material claims carry **two independent** sources. Lawrence's own notes and the PRD are primary sources and are not subject to the double-sourcing rule, but where independent research **contradicts** a primary-source claim that contradiction is flagged for the board.
 
 > **Intake integration ([PLE-113](/PLE/issues/PLE-113)).** This ledger is the verification standard the supplementary-document intake consumes (`document-intake/`). When a board doc resolves an item below, its intake record names the item in `resolvesLedger:` and updates this file in the same change: **§C/§D items are the closeable targets** (open gaps and discrepancies). Resolved §D items move to §A (double-sourced) or §B (primary-only); resolved §C discrepancies are annotated RESOLVED with the `DOC-NNN` id and the board's decision — discrepancy history is never deleted.
 
@@ -44,6 +44,17 @@ Status legend: **VERIFIED** (≥2 independent reputable sources) · **PARTIAL** 
 ### A5. SQ4D — company & milestone VERIFIED (but see DISCREPANCY C1)
 - SQ4D is a real, credible 3D-printed-construction company: listed the **first permitted 3D-printed house for sale in the U.S.** (Riverhead, NY, Jan 2021) printed with its **ARCS** (Autonomous Robotic Construction System); first U.S. 3D-printed residence to receive a certificate of occupancy. *(Sources: PR Newswire, 26 Jan 2021; 3Dnatives, 1 Feb 2021; Greater Long Island, 3 Feb 2021.)*
 
+### A6. Savanna Public Schools (Oklahoma) — district identity VERIFIED; resolves §D gap
+- **Identity now publicly matched** (closes the former §D "no public match yet" gap): **Savanna Public Schools**, a public district in **Savanna, Pittsburg County, OK** (savanna.k12.ok.us). Independently documented by **Ballotpedia** (district + elections pages) and the **McAlester News-Capital** (repeated local coverage). District identity is now double-sourced.
+- **First bond — FAILED April 7, 2026 (VERIFIED):** $6.6M for a new elementary building + storm shelter; **92 for / 102 against** (191 cast). Apr 7, 2026 is a **Tuesday** (consistent with OK election law). *(Sources: McAlester News-Capital "Savanna school bond fails"; Ballotpedia; KOSU/KGOU Apr-2026 results.)* — already reflected in PLE-112's reframe.
+  - *Minor source note:* one McAlester "forums" article wrote "April 6" (a Monday) while the Yahoo/AP "bond plan" piece wrote "April 7" (a Tuesday). **April 7 (Tuesday) is correct** per OK election-day rules; the "April 6" is a single-article slip, no build action.
+- **Second bond — re-vote scheduled Aug 25, 2026 — PARTIAL (single public source):** Confirmed by the district's own **Bond Transparency Act statutory filing** ("Information Required by the Bond Transparency Act — August 25th, 2026 Bond Vote", savanna.k12.ok.us) — an authoritative *public* notice, not Lawrence's private notes. **Aug 25, 2026 is a Tuesday** (consistent with OK election law). **Clean independent second source still pending** (OK State Election Board's August list not yet published as of 2026-06-18; the June list does not include it; Ballotpedia/aggregators are anti-bot to our fetcher). **Recommendation:** build's Savanna 2nd-bond date stays `unconfirmed` per the strict double-source bar until the county/state certifies — but the public statutory filing is a strong primary anchor.
+
+### A7. OSSBA/CCOSA Education Leadership Conference 2026 — VERIFIED
+- **Aug 13–16, 2026**, **Oklahoma City Convention Center** (100 Mick Cornett Dr, OKC). Exhibit hall open Aug 13–15.
+- Sources: **ossba.org** conference page (organizer = authoritative; verbatim "August 13-16, 2026") + ossba.org events listing; the event is independently listed by the **Oklahoma City Convention Center** (venue) and the **10times** conference aggregator, both reflecting the Aug 2026 dates in search-indexed copies (direct re-fetch blocked by anti-bot 403 / a stale recurring-template page — a fetch-tooling limitation, not absence of the source).
+- **Recommendation:** treat as **confirmed**; build's `ossba-convention` node may flip `unconfirmed → confirmed`. (Second source is a *listing*, not deep editorial coverage — noted for transparency.)
+
 ---
 
 ## B. PRIMARY-SOURCE-ONLY — confirmed by Lawrence's notes/cards; not independently double-sourceable (expected)
@@ -83,7 +94,7 @@ Build calls Nick Denison "Principal & Owner." Public source shows **co-ownership
 These are inherently private and must come from Lawrence (Rule #1: not for a human only if an agent *could* do it — these genuinely require Lawrence's primary documents):
 - **Adam Newman** — full name/spelling (Savanna Schools introducer).
 - **Gene Bulmash** — full name/spelling + City of Tulsa Housing title.
-- **Savanna Schools** — official district identity/location (no public match yet; confirm exact name).
+- ~~**Savanna Schools** — official district identity/location (no public match yet; confirm exact name).~~ **RESOLVED 2026-06-18** → see §A6: Savanna Public Schools, Pittsburg County, OK; double-sourced via Ballotpedia + McAlester News-Capital.
 - **Cherokee $40M** — see C2; confirm intended meaning.
 - **Revenue Maximization Model** — full document (§8.1 BLOCKER).
 - **City of Tulsa housing PDFs**, **Skyland 3D ROM worksheet**, **Legacy Farms / Spoke House** specifics — primary documents pending.
@@ -99,3 +110,6 @@ Public, verifiable sources now available to attach to nodes:
 - SQ4D milestone → PR Newswire + 3Dnatives (A5).
 - Cherokee context → Anadisgoi + Cherokee Phoenix (C2).
 - Hayden Hanoch → FOX23 (B).
+- Savanna 1st bond (Apr 7, 2026) → McAlester News-Capital "Savanna school bond fails" + Ballotpedia + KOSU/KGOU (A6).
+- Savanna 2nd bond (Aug 25, 2026) → savanna.k12.ok.us Bond Transparency Act filing (A6) — single public source; add 2nd when state/county certifies.
+- OSSBA Convention (Aug 13–16, 2026) → ossba.org conference page + OKC Convention Center listing (A7).
