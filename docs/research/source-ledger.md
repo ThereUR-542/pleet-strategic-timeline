@@ -2,6 +2,8 @@
 
 **Owner:** Research Lead · **Updated:** 2026-06-18 · **Standard:** every researchable claim carries ≥1 verifiable source; material claims carry **two independent** sources. Lawrence's own notes and the PRD are primary sources and are not subject to the double-sourcing rule, but where independent research **contradicts** a primary-source claim that contradiction is flagged for the board.
 
+> **Intake integration ([PLE-113](/PLE/issues/PLE-113)).** This ledger is the verification standard the supplementary-document intake consumes (`document-intake/`). When a board doc resolves an item below, its intake record names the item in `resolvesLedger:` and updates this file in the same change: **§C/§D items are the closeable targets** (open gaps and discrepancies). Resolved §D items move to §A (double-sourced) or §B (primary-only); resolved §C discrepancies are annotated RESOLVED with the `DOC-NNN` id and the board's decision — discrepancy history is never deleted.
+
 Status legend: **VERIFIED** (≥2 independent reputable sources) · **PARTIAL** (some elements verified, others not) · **PRIMARY-ONLY** (rests on Lawrence's notes/calendar/business cards — not independently double-sourceable, which is expected) · **UNVERIFIED** (could not be double-sourced) · **DISCREPANCY** (independent research contradicts the current build content).
 
 ---
