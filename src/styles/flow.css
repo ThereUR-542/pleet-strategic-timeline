@@ -664,4 +664,80 @@
     background: rgba(255, 255, 255, 0.22);
     margin: var(--space-2) auto var(--space-0-5);
   }
+
+  /* ── PLE-97 mobile (≤760px) graph viewport ──────────────────────────────────
+     Initial framing is fixed in FlowCanvas (readable zoom + pan), not fitView.
+     The rules below dock the overlays so they stop occluding the graph and make
+     every control meet the 44px touch-target floor (--touch-min). */
+
+  /* Touch targets (WCAG 2.5.5 / HIG 44pt). */
+  .flow-canvas .react-flow__controls-button {
+    width: var(--touch-min);
+    height: var(--touch-min);
+  }
+  .flow-toolbar .flow-btn,
+  .demand-toggle {
+    min-height: var(--touch-min);
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* Title card: drop the subtitle, shrink — reclaim vertical space; the page
+     header already names the surface. */
+  .flow-titlecard {
+    padding: var(--space-2) var(--space-3);
+    margin: var(--space-2);
+  }
+  .flow-titlecard__title { font-size: var(--text-md); letter-spacing: 0.01em; }
+  .flow-titlecard__sub { display: none; }
+
+  .flow-toolbar { margin: var(--space-2); }
+
+  /* Legend: collapsed chip by default; expands to a compact bottom sheet. */
+  .flow-legend-dock { margin: 0; }
+  .flow-legend-chip {
+    min-height: var(--touch-min);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1-5);
+    margin: var(--space-3);
+    padding: 0 var(--space-3);
+    background: rgba(14, 17, 23, 0.82);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: var(--radius-chip);
+    color: #cdd5e4;
+    font: inherit;
+    font-size: var(--text-sm);
+    cursor: pointer;
+  }
+  .flow-legend--sheet {
+    position: relative;
+    margin: var(--space-3);
+    max-width: calc(100vw - 2 * var(--space-3));
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  }
+  .flow-legend__close {
+    position: absolute;
+    top: var(--space-1-5);
+    right: var(--space-2);
+    background: none;
+    border: none;
+    color: var(--text-low);
+    font-size: var(--text-md);
+    line-height: var(--leading-none);
+    cursor: pointer;
+    padding: var(--space-0-5);
+  }
+
+  /* Demand Outlook: expanded panel docks as a width-clamped bottom sheet flush
+     to the edges instead of a floating card that overflows 390px. */
+  .demand-panel {
+    left: var(--space-3);
+    right: var(--space-3);
+    bottom: var(--space-3);
+    width: auto;
+    max-width: none;
+  }
 }

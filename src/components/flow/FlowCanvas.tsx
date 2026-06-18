@@ -7,7 +7,7 @@
 // zooming together. Detail opens in a docked side panel; nothing is stacked.
 // =============================================================================
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -23,6 +23,7 @@ import {
   type Node,
   type Edge as RFEdge,
   type NodeMouseHandler,
+  type ReactFlowInstance,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { TimelineData } from "../../data/types";
@@ -38,6 +39,36 @@ import {
 
 const FOCAL_ID = "n-mayor-nichols";
 const NODE_TYPES = { stage: StageNode };
+
+// PLE-97: the ≤760px breakpoint, mirrored exactly in flow.css's media query.
+const MOBILE_BP = 760;
+// Readable mount zoom on narrow viewports — a node (202px) paints at ~182px so
+// its 11.5px title is legible, instead of fitView collapsing the wide time-axis
+// into a sub-readable band. (PLE-97 §2.)
+const MOBILE_MOUNT_ZOOM = 0.9;
+
+/** True when the viewport is at/under the mobile breakpoint; updates on resize. */
+function useIsMobile(): boolean {
+  const query = `(max-width: ${MOBILE_BP}px)`;
+  const [mobile, setMobile] = useState(
+    () => typeof window !== "undefined" && window.matchMedia(query).matches,
+  );
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia(query);
+    const onChange = () => setMobile(mql.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, [query]);
+  return mobile;
+}
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
 
 interface Props {
   data: TimelineData;
@@ -157,6 +188,10 @@ function FlowCanvasInner({
   compact,
 }: Props) {
   const { setCenter, fitView } = useReactFlow();
+  const mobile = useIsMobile();
+  // Legend docks to a collapsed disclosure chip on mobile (Progressive
+  // Disclosure) so it stops eating graph space; always-open on desktop.
+  const [legendOpen, setLegendOpen] = useState(false);
 
   const layout = useMemo(
     () => computeTimelineLayout(data.nodes, data.edges, today),
@@ -248,8 +283,28 @@ function FlowCanvasInner({
     if (!focusNodeId) return;
     const p = posById.get(focusNodeId);
     if (!p) return;
-    setCenter(p.cx, p.cy, { zoom: 1.1, duration: 600 });
+    setCenter(p.cx, p.cy, { zoom: 1.1, duration: prefersReducedMotion() ? 0 : 600 });
   }, [focusNodeId, posById, setCenter]);
+
+  // PLE-97: initial framing. Desktop fits the whole graph; mobile mounts at a
+  // readable zoom centred on the focal/TODAY anchor and lets the user pan time,
+  // instead of fitView() collapsing the wide axis into a sub-readable band.
+  const didInit = useRef(false);
+  const handleInit = useCallback(
+    (instance: ReactFlowInstance) => {
+      if (didInit.current) return;
+      didInit.current = true;
+      if (mobile) {
+        const anchor = posById.get(FOCAL_ID);
+        const ax = anchor ? anchor.cx : layout.axis.todayX;
+        const ay = anchor ? anchor.cy : 0;
+        instance.setCenter(ax, ay, { zoom: MOBILE_MOUNT_ZOOM, duration: 0 });
+      } else {
+        instance.fitView({ padding: 0.12 });
+      }
+    },
+    [mobile, posById, layout.axis.todayX],
+  );
 
   return (
     <ReactFlow
@@ -258,7 +313,7 @@ function FlowCanvasInner({
       nodeTypes={NODE_TYPES}
       onNodeClick={handleNodeClick}
       onPaneClick={() => onNodeSelect("")}
-      fitView
+      onInit={handleInit}
       fitViewOptions={{ padding: 0.12 }}
       minZoom={0.15}
       maxZoom={2.5}
@@ -272,14 +327,17 @@ function FlowCanvasInner({
         <TimelineAxisLayer axis={layout.axis} half={half} stems={stems} />
       </ViewportPortal>
       <Controls showInteractive={false} />
-      <MiniMap
-        pannable
-        zoomable
-        nodeColor={(n) => NODE_COLOR[(n.data as StageNodeData).type] ?? "#475569"}
-        nodeStrokeWidth={0}
-        maskColor="rgba(8,10,15,0.72)"
-        className="flow-minimap"
-      />
+      {/* MiniMap is low value / high space-cost on a touch viewport — hide it. */}
+      {!mobile && (
+        <MiniMap
+          pannable
+          zoomable
+          nodeColor={(n) => NODE_COLOR[(n.data as StageNodeData).type] ?? "#475569"}
+          nodeStrokeWidth={0}
+          maskColor="rgba(8,10,15,0.72)"
+          className="flow-minimap"
+        />
+      )}
 
       {!compact && (
         <Panel position="top-left" className="flow-titlecard">
@@ -299,29 +357,52 @@ function FlowCanvasInner({
         </Panel>
       )}
 
-      <Panel position="bottom-left" className="flow-legend">
-        <div className="flow-legend__col">
-          <span className="flow-legend__head">Nodes</span>
-          {(Object.keys(NODE_TYPE_LABEL) as Array<keyof typeof NODE_TYPE_LABEL>).map(
-            (t) => (
-              <span key={t} className="flow-legend__row">
-                <span className="flow-legend__swatch" style={{ background: NODE_COLOR[t] }} />
-                {NODE_TYPE_LABEL[t]}
-              </span>
-            ),
-          )}
-        </div>
-        <div className="flow-legend__col">
-          <span className="flow-legend__head">Edges</span>
-          {(["converges_on", "finances", "partners", "depends_on", "introduced"] as const).map(
-            (k) => (
-              <span key={k} className="flow-legend__row">
-                <span className="flow-legend__line" style={{ background: EDGE_COLOR[k] }} />
-                {EDGE_KIND_LABEL[k]}
-              </span>
-            ),
-          )}
-        </div>
+      {/* Legend: always-open columns on desktop; a collapsed "Legend" chip that
+          opens a compact bottom sheet on mobile so it stops occluding the graph. */}
+      <Panel position="bottom-left" className="flow-legend-dock">
+        {mobile && !legendOpen ? (
+          <button
+            className="flow-legend-chip"
+            onClick={() => setLegendOpen(true)}
+            aria-expanded={false}
+          >
+            ⓘ Legend
+          </button>
+        ) : (
+          <div className={`flow-legend${mobile ? " flow-legend--sheet" : ""}`}>
+            {mobile && (
+              <button
+                className="flow-legend__close"
+                onClick={() => setLegendOpen(false)}
+                aria-label="Collapse legend"
+              >
+                ✕
+              </button>
+            )}
+            <div className="flow-legend__col">
+              <span className="flow-legend__head">Nodes</span>
+              {(Object.keys(NODE_TYPE_LABEL) as Array<keyof typeof NODE_TYPE_LABEL>).map(
+                (t) => (
+                  <span key={t} className="flow-legend__row">
+                    <span className="flow-legend__swatch" style={{ background: NODE_COLOR[t] }} />
+                    {NODE_TYPE_LABEL[t]}
+                  </span>
+                ),
+              )}
+            </div>
+            <div className="flow-legend__col">
+              <span className="flow-legend__head">Edges</span>
+              {(["converges_on", "finances", "partners", "depends_on", "introduced"] as const).map(
+                (k) => (
+                  <span key={k} className="flow-legend__row">
+                    <span className="flow-legend__line" style={{ background: EDGE_COLOR[k] }} />
+                    {EDGE_KIND_LABEL[k]}
+                  </span>
+                ),
+              )}
+            </div>
+          </div>
+        )}
       </Panel>
     </ReactFlow>
   );

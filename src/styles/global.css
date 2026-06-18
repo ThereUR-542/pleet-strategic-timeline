@@ -37,6 +37,10 @@
   /* Radii (PLE-101 §4 system proposal). */
   --radius-md: 10px; --radius-chip: 999px; --radius-panel: 20px;
 
+  /* Minimum touch target (PLE-97 §6 system proposal) — WCAG 2.5.5 / 2.5.8,
+     Apple HIG 44pt, Material 48dp. Reuse across touch surfaces, never inline. */
+  --touch-min: 44px;
+
   /* Surface + NodeType colors mirrored from flowTheme (PLE-101). Components set
      `--type` inline per node; these are the static fallbacks the CSS reads. */
   --panel: #0e1117;
