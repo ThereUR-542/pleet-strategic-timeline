@@ -25,6 +25,7 @@ import {
   ViewportPortal,
   MarkerType,
   useReactFlow,
+  useViewport,
   type Node,
   type Edge as RFEdge,
   type NodeMouseHandler,
@@ -121,8 +122,10 @@ interface Props {
   compact?: boolean;
 }
 
-// ── Zone columns + thread sub-containers, drawn in flow coords under the nodes ─
-function ZoneLayer({
+// ── SUBSTRATE: zone tint columns + thread sub-containers (PLE-125 §10.6 — these
+//    TILT with the pane in 3D mode; rendered via ViewportPortal under the nodes).
+//    The chapter HEADERS were lifted out to the fixed frame (ZoneHeaderLayer). ──
+function ZoneSubstrateLayer({
   zones,
   subgroups,
 }: {
@@ -136,13 +139,7 @@ function ZoneLayer({
           key={z.key}
           className={`flow-zone${z.index % 2 === 1 ? " flow-zone--alt" : ""}`}
           style={{ left: z.x, top: 0, width: z.width, height: z.height }}
-        >
-          <div className="flow-zone__head">
-            <span className="flow-zone__kicker">{z.kicker}</span>
-            <span className="flow-zone__title">{z.title}</span>
-            <span className="flow-zone__range">{z.rangeLabel}</span>
-          </div>
-        </div>
+        />
       ))}
       {subgroups.map((s) => (
         <div
@@ -244,6 +241,62 @@ function TimelineAxisLayer({
         TODAY · {axis.today}
       </text>
     </svg>
+  );
+}
+
+// ── Zone/chapter HEADER strip (PLE-125 §10.6 — the "what chapter" labels, lifted
+//    out of the rotating substrate into the fixed frame so they read flat in 3D).
+function ZoneHeaderLayer({ zones }: { zones: ZoneBand[] }) {
+  return (
+    <div className="flow-zone-layer" aria-hidden="true">
+      {zones.map((z) => (
+        <div
+          key={z.key}
+          className="flow-zone__head flow-zone__head--fixed"
+          style={{ left: z.x, top: 0, width: z.width, right: "auto" }}
+        >
+          <span className="flow-zone__kicker">{z.kicker}</span>
+          <span className="flow-zone__title">{z.title}</span>
+          <span className="flow-zone__range">{z.rangeLabel}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── FIXED reference frame (PLE-125 §10.6, CTO deviation #1 fix) ───────────────
+// The PLE-92 time axis (month ticks, Today marker, stems) + the zone/chapter
+// header strip are the "WHEN/WHAT" reading frame — the board's #1 concern. They
+// ride the live React Flow viewport transform (translate + zoom) so they stay
+// pinned to the content, but they live OUTSIDE .react-flow__pane and so NEVER
+// pick up the §10.4 rotateX/rotateY. Result: in 3D mode only the substrate
+// (tints/nodes/edges/sub-containers) tilts; the axis stays flat-readable. In
+// flat mode the transform exactly mirrors the viewport, so the render is
+// unchanged from v1.
+function FixedFrame({
+  axis,
+  width,
+  height,
+  stems,
+  zones,
+}: {
+  axis: TimelineAxis;
+  width: number;
+  height: number;
+  stems: { cx: number; cy: number }[];
+  zones: ZoneBand[];
+}) {
+  const { x, y, zoom } = useViewport();
+  return (
+    <div className="flow-fixedframe" aria-hidden="true">
+      <div
+        className="flow-fixedframe__inner"
+        style={{ transform: `translate(${x}px, ${y}px) scale(${zoom})` }}
+      >
+        <ZoneHeaderLayer zones={zones} />
+        <TimelineAxisLayer axis={axis} width={width} height={height} stems={stems} />
+      </div>
+    </div>
   );
 }
 
@@ -578,10 +631,18 @@ function FlowCanvasInner({
       }
     >
       <Background variant={BackgroundVariant.Dots} gap={30} size={1} color="#20262f" />
+      {/* Substrate (tilts in 3D, §10.6): zone tints + thread sub-containers. */}
       <ViewportPortal>
-        <ZoneLayer zones={layout.zones} subgroups={layout.subgroups} />
-        <TimelineAxisLayer axis={layout.axis} width={layout.width} height={layout.height} stems={stems} />
+        <ZoneSubstrateLayer zones={layout.zones} subgroups={layout.subgroups} />
       </ViewportPortal>
+      {/* Fixed reading frame (never tilts, §10.6): time axis + chapter headers. */}
+      <FixedFrame
+        axis={layout.axis}
+        width={layout.width}
+        height={layout.height}
+        stems={stems}
+        zones={layout.zones}
+      />
       <Controls showInteractive={false} />
       <MiniMap
         pannable

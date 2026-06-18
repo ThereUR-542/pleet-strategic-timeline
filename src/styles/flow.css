@@ -826,11 +826,38 @@
   box-shadow: 0 0 0 1px rgba(192, 132, 252, 0.25), 0 6px 18px rgba(0, 0, 0, 0.42);
 }
 
+/* ── Fixed reading frame (PLE-125 §10.6): the time axis + chapter-header strip
+   ride the live viewport transform (translate/zoom) but live OUTSIDE
+   .react-flow__pane, so they never pick up the 3D rotateX/rotateY. z-index 3
+   parks the whole frame just BEHIND .react-flow__renderer (z 4 → nodes/edges)
+   and above the dot background, so the axis stays a flat plane under the
+   tilted substrate. The zone wash is only ~2% white, so axis legibility is
+   unaffected by sitting behind it. */
+.flow-fixedframe {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 3;
+}
+.flow-fixedframe__inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+/* Header strip is now positioned per-zone in the fixed frame (not nested in the
+   .flow-zone column), so cancel the column-relative right:0 stretch. */
+.flow-zone__head--fixed {
+  right: auto;
+}
+
 /* ── Z-plane 3D depth mode (PLE-115 §10, Approach A) ──────────────────────────
    The flow PANE rotates as one rigid plane; nodes lift to per-thread Z layers
    (--node-z, set inline per node). The HUD — RF Controls/MiniMap, the legend,
-   toolbar, 3D control, and DetailPanel — are siblings OUTSIDE .react-flow__pane,
-   so they never rotate (§10.6). Engaged only when .flow-canvas--zmode is set;
+   toolbar, 3D control, DetailPanel, AND the fixed reading frame (.flow-fixedframe:
+   time axis + chapter headers, PLE-125 §10.6) — are siblings OUTSIDE
+   .react-flow__pane, so they never rotate (§10.6). Engaged only when .flow-canvas--zmode is set;
    its absence restores exact flat 2D (§10.8 #9). Rotation comes from the CSS
    vars --zp-rx / --zp-ry set on the canvas; clamps live in FlowCanvas. */
 .flow-canvas--zmode .react-flow__renderer {
@@ -878,8 +905,12 @@
   gap: var(--space-2);
   align-items: center;
 }
+/* §10.7 — all 3D-depth controls meet the ≥44px touch target (PLE-97 parity). */
 .flow-zctl__btn {
-  min-height: 32px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-chip, 8px);
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -900,12 +931,36 @@
   background: rgba(56, 40, 76, 0.92);
 }
 .flow-zctl__toggle {
-  min-height: 36px;
+  min-height: 44px;
   font-size: var(--text-xs, 12px);
 }
+/* Slider: 44px tall hit-area with an enlarged thumb so the touch target meets
+   §10.7 even though the visible track is thin (PLE-97 parity). */
 .flow-zctl__slider {
   width: 120px;
+  height: 44px;
+  margin: 0;
+  background: transparent;
   accent-color: #c084fc;
+  cursor: pointer;
+}
+.flow-zctl__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #c084fc;
+  border: none;
+  /* fat invisible box-shadow ring → ~44px effective tap area */
+  box-shadow: 0 0 0 13px rgba(192, 132, 252, 0.001);
+}
+.flow-zctl__slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: #c084fc;
 }
 .flow-zctl__hint {
   font-size: var(--text-3xs, 10px);
