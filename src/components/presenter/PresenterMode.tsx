@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useRef } from "react";
 import type { TimelineNode, Edge } from "../../data/types";
+import { effectiveDate } from "../flow/layout";
 
 interface Props {
   nodes: TimelineNode[];
@@ -12,48 +13,33 @@ interface Props {
   children: React.ReactNode;
 }
 
-/** Ordered list of presenter step node IDs: convergence targets first, then demand-scored. */
+/**
+ * Ordered list of presenter step node IDs — STRICTLY chronological by node date
+ * (PLE-144). Lawrence's ask: Present-mode slides must advance in date order.
+ *
+ * Every timeline node becomes a slide (the prior 4-tier ordering's tiers already
+ * unioned to the full node set, so the slide *set* is unchanged — only the order
+ * is). Each node sorts by its `effectiveDate`: its own axis date
+ * (`date ?? dateEnd ?? dateStart`), else the earliest axis date among its edge
+ * neighbors, so an undated-but-connected node still slots in sensibly. We reuse
+ * the canonical `effectiveDate` helper — no re-implemented date precedence.
+ *
+ * ISO `YYYY-MM-DD` strings compare correctly as strings. Undated nodes (effective
+ * date resolves to null) go LAST in stable original array order; equal dates keep
+ * stable original array order. The sort reads live data, so dates added later via
+ * /editor re-slot automatically with no code change.
+ */
 export function buildPresenterSteps(nodes: TimelineNode[], edges: Edge[]): string[] {
-  // Step 1: convergence targets (nodes that are the `to` of a converges_on edge)
-  const convergenceTargets = new Set(
-    edges.filter((e) => e.kind === "converges_on").map((e) => e.to),
-  );
-  // Step 2: high demand-score nodes (top quartile)
-  const scored = nodes
-    .filter((n) => n.demandScore != null && !convergenceTargets.has(n.id))
-    .sort((a, b) => (b.demandScore ?? 0) - (a.demandScore ?? 0));
-  const demandThreshold = scored.length > 0 ? (scored[0].demandScore ?? 0) * 0.5 : 0;
-  const highDemand = scored.filter((n) => (n.demandScore ?? 0) >= demandThreshold);
-
-  // Step 3: financial_interest thread nodes (not already included)
-  const alreadyIn = new Set([...convergenceTargets, ...highDemand.map((n) => n.id)]);
-  const financial = nodes.filter(
-    (n) => n.thread === "financial_interest" && !alreadyIn.has(n.id),
-  );
-
-  // Step 4: remaining nodes sorted by date
-  const allIncluded = new Set([
-    ...convergenceTargets,
-    ...highDemand.map((n) => n.id),
-    ...financial.map((n) => n.id),
-  ]);
-  const remaining = nodes
-    .filter((n) => !allIncluded.has(n.id))
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+  return nodes
+    .map((n, i) => ({ id: n.id, date: effectiveDate(n, edges, nodeMap), i }))
     .sort((a, b) => {
-      const da = a.date ?? a.dateStart ?? "";
-      const db = b.date ?? b.dateStart ?? "";
-      return da < db ? -1 : da > db ? 1 : 0;
-    });
-
-  // Gather convergence nodes in original node order
-  const convNodes = nodes.filter((n) => convergenceTargets.has(n.id));
-
-  return [
-    ...convNodes.map((n) => n.id),
-    ...highDemand.map((n) => n.id),
-    ...financial.map((n) => n.id),
-    ...remaining.map((n) => n.id),
-  ];
+      if (a.date === b.date) return a.i - b.i; // tiebreak: stable original order
+      if (a.date === null) return 1; // undated last
+      if (b.date === null) return -1;
+      return a.date < b.date ? -1 : 1;
+    })
+    .map((s) => s.id);
 }
 
 export function PresenterMode({
