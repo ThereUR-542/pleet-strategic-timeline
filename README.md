@@ -45,3 +45,5 @@ carries a `confidence` flag; unconfirmed facts render "pending verification" (§
 
 Vercel (static SPA). Default to an unguessable preview URL until the access model
 is confirmed (§11/§12).
+
+**Quick start:** Use `NODE_ENV=development npm install --include=dev --cache /tmp/npm-cache-ple78` to install (shared npm cache is permission-locked). Then `npm test` + `npm run build`. See [scripts/DEPLOYMENT.md](scripts/DEPLOYMENT.md) for full deployment docs, access gating, and Vercel SSO setup.
