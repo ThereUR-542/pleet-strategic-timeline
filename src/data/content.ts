@@ -559,6 +559,22 @@ export const NODES: TimelineNode[] = [
     confidence: "confirmed",
   },
   {
+    id: "n-equipment-demand",
+    type: "concept",
+    title: "Equipment Demand N(t) — printers needed to meet building demand",
+    date: "2026-10-01",
+    dateStart: null,
+    dateEnd: null,
+    thread: "manufacturing",
+    summary: "Accumulating building demand converts to N(t) = ⌈D(t)/C_machine⌉ printers required.",
+    bodyMd:
+      "**Equipment Demand N(t)** — when cumulative building demand D(t) exceeds single-printer throughput, the model converts it to a printer count: N(t) = ⌈D(t) / C_machine⌉ (§6.3, `equipmentDemand` / `equipmentSteps` in `demand.ts`). This is the causal bridge: building demand (Savanna Schools, Oswego, Brady's home, Cherokee Nation Housing) → N(t) printers needed → Oklahoma manufacturing scale-up. The step function N(t) is the §5.3 step-2 manufacturing trigger.",
+    demandScore: null,
+    media: [],
+    citationIds: [],
+    confidence: "unconfirmed",
+  },
+  {
     id: "n-oklahoma-manufacturing",
     type: "concept",
     title: "Oklahoma Manufacturing Imperative",
@@ -1045,7 +1061,7 @@ export const EDGES: Edge[] = [
   { id: "e-brady-person-inquiry", from: "n-brady-deaton", to: "n-brady-inquiry", kind: "introduced", label: "inbound" },
   { id: "e-brady-lunch", from: "n-brady-deaton", to: "n-lunch-with-pleet", kind: "partners", label: null },
   // Skyland ROM → demand evidence
-  { id: "e-skyland-demonstrates", from: "n-skyland-rom", to: "n-oklahoma-manufacturing", kind: "demonstrates", label: "prior demand" },
+  { id: "e-skyland-demonstrates", from: "n-skyland-rom", to: "n-equipment-demand", kind: "demonstrates", label: "prior demand" },
   { id: "e-skyland-brady-home", from: "n-skyland-rom", to: "n-brady-home", kind: "demonstrates", label: "competing bid" },
   // Financing layer (§8.6 — `finances` edges should render distinctly, §4.2/§4.8)
   { id: "e-brady-bo", from: "n-brady-deaton", to: "n-bo-jett", kind: "finances", label: "IBC Bank" },
@@ -1061,9 +1077,16 @@ export const EDGES: Edge[] = [
   { id: "e-oswego-mayor", from: "n-oswego-approval", to: "n-mayor-nichols", kind: "converges_on", label: "City of Tulsa" },
   { id: "e-paul-lawson-mayor", from: "n-paul-lawson", to: "n-mayor-nichols", kind: "converges_on", label: "existing relationship" },
   { id: "e-gene-bulmash-mayor", from: "n-gene-bulmash", to: "n-mayor-nichols", kind: "converges_on", label: "City of Tulsa Housing" },
-  // Manufacturing imperative
-  { id: "e-regan-manufacturing", from: "n-daniel-regan", to: "n-oklahoma-manufacturing", kind: "demonstrates", label: "hangar" },
-  { id: "e-oswego-manufacturing", from: "n-oswego-approval", to: "n-oklahoma-manufacturing", kind: "depends_on", label: "equipment demand" },
+  { id: "e-tim-counsel-nichols", from: "n-tim-counsel", to: "n-mayor-nichols", kind: "converges_on", label: "ribbon-cutting" },
+  { id: "e-kayla-lee-nichols", from: "n-kayla-lee", to: "n-mayor-nichols", kind: "converges_on", label: "ribbon-cutting" },
+  // Manufacturing imperative — building demand → N(t) bridge → Oklahoma
+  { id: "e-regan-manufacturing", from: "n-daniel-regan", to: "n-oklahoma-manufacturing", kind: "depends_on", label: "airport hangar" },
+  { id: "e-oswego-manufacturing", from: "n-oswego-approval", to: "n-equipment-demand", kind: "depends_on", label: "equipment demand" },
+  { id: "e-oswego-printing-demand", from: "n-oswego-printing", to: "n-equipment-demand", kind: "depends_on", label: "building demand" },
+  { id: "e-savanna-printing-demand", from: "n-savanna-printing", to: "n-equipment-demand", kind: "depends_on", label: "building demand" },
+  { id: "e-brady-home-demand", from: "n-brady-home", to: "n-equipment-demand", kind: "depends_on", label: "building demand" },
+  { id: "e-cherokee-demand", from: "n-cherokee-nation-housing", to: "n-equipment-demand", kind: "depends_on", label: "building demand" },
+  { id: "e-equipment-demand-manufacturing", from: "n-equipment-demand", to: "n-oklahoma-manufacturing", kind: "depends_on", label: "N(t) printers needed" },
   // Savanna Schools thread sequence
   { id: "e-savanna-bond-fail-approval", from: "n-savanna-bond-fail", to: "n-savanna-approval", kind: "depends_on", label: "reconnection" },
   { id: "e-savanna-approval-bond-vote", from: "n-savanna-approval", to: "n-savanna-bond-vote", kind: "depends_on", label: null },
