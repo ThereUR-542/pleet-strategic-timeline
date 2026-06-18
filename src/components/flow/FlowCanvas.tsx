@@ -36,11 +36,9 @@ import type { TimelineData } from "../../data/types";
 import { temporalStateFor } from "../../lib/temporal";
 import {
   computeTimelineLayout,
-  NODE_H,
   type FlowLayout,
   type TimelineAxis,
-  type ZoneBand,
-  type SubContainer,
+  type SwimBand,
 } from "./layout";
 import { StageNode, type StageNodeData } from "./StageNode";
 import {
@@ -62,7 +60,6 @@ const MOBILE_MOUNT_ZOOM = 0.9;
 // "fit-to-screen so the wide axis reads cleanly"). Desktop mounts fit-to-screen
 // so the whole real-time scale (clustering = momentum, gaps = quiet) is visible;
 // pan/zoom + the Fit button read detail at TV scale.
-const ZONE_TIER_H = 26; // vertical offset per chapter-header tier (overlap stagger)
 
 // ── Z-plane depth (PLE-115 §10) ──────────────────────────────────────────────
 // §10.2: which semantic variable maps to Z → story `thread`. Threads cluster
@@ -127,39 +124,24 @@ interface Props {
   compact?: boolean;
 }
 
-// ── SUBSTRATE: zone tint columns + thread sub-containers (PLE-125 §10.6 — these
-//    TILT with the pane in 3D mode; rendered via ViewportPortal under the nodes).
-//    The chapter HEADERS were lifted out to the fixed frame (ZoneHeaderLayer). ──
-function ZoneSubstrateLayer({
-  zones,
-  subgroups,
-}: {
-  zones: ZoneBand[];
-  subgroups: SubContainer[];
-}) {
+// ── SUBSTRATE: horizontal swim-lane band strips (PLE-133 — "immiscible liquid"
+//    layers). Full-width, NON-overlapping, one per thread, tinted by thread.
+//    Rendered via ViewportPortal under the nodes (TILTS with the pane in 3D). ──
+function BandSubstrateLayer({ bands }: { bands: SwimBand[] }) {
   return (
-    <div className="flow-zone-layer" aria-hidden="true">
-      {zones.map((z) => (
+    <div className="flow-band-layer" aria-hidden="true">
+      {bands.map((b, i) => (
         <div
-          key={z.key}
-          className={`flow-zone${z.index % 2 === 1 ? " flow-zone--alt" : ""}`}
-          style={{ left: z.x, top: 0, width: z.width, height: z.height }}
-        />
-      ))}
-      {subgroups.map((s) => (
-        <div
-          key={s.id}
-          className="flow-subgroup"
+          key={b.key}
+          className={`flow-band${i % 2 === 1 ? " flow-band--alt" : ""}`}
           style={{
-            left: s.x,
-            top: s.y,
-            width: s.width,
-            height: s.height,
-            ["--th" as string]: `var(--thread-${s.thread})`,
+            left: b.x,
+            top: b.y,
+            width: b.width,
+            height: b.height,
+            ["--th" as string]: `var(--thread-${b.thread}, #6ea8ff)`,
           }}
-        >
-          <span className="flow-subgroup__tag">{s.label}</span>
-        </div>
+        />
       ))}
     </div>
   );
@@ -198,20 +180,8 @@ function TimelineAxisLayer({
         height={height}
         fill="rgba(110,168,255,0.025)"
       />
-      {/* stems: node card → its date tick on the axis */}
-      {stems.map((s, i) => (
-        <line
-          key={i}
-          x1={s.cx}
-          y1={s.cy + NODE_H / 2}
-          x2={s.cx}
-          y2={oy}
-          stroke="rgba(255,255,255,0.10)"
-          strokeWidth={1}
-        />
-      ))}
-      {/* axis line */}
-      <line x1={0} y1={oy} x2={width} y2={oy} stroke="rgba(255,255,255,0.30)" strokeWidth={1.5} />
+      {/* centred time axis line (PLE-133: X runs through the middle, bands ±Y) */}
+      <line x1={0} y1={oy} x2={width} y2={oy} stroke="rgba(255,255,255,0.34)" strokeWidth={1.5} />
       {/* month ticks + labels */}
       {axis.ticks.map((t, i) => (
         <g key={i}>
@@ -262,20 +232,20 @@ function TimelineAxisLayer({
   );
 }
 
-// ── Zone/chapter HEADER strip (PLE-125 §10.6 — the "what chapter" labels, lifted
-//    out of the rotating substrate into the fixed frame so they read flat in 3D).
-function ZoneHeaderLayer({ zones }: { zones: ZoneBand[] }) {
+// ── Band LABELS (PLE-133): one label per swim-lane, pinned at the band's left.
+//    Lifted into the fixed frame so they read flat in 3D and never overlap (each
+//    sits inside its own non-overlapping band).
+function BandLabelLayer({ bands }: { bands: SwimBand[] }) {
   return (
-    <div className="flow-zone-layer" aria-hidden="true">
-      {zones.map((z) => (
+    <div className="flow-band-layer" aria-hidden="true">
+      {bands.map((b) => (
         <div
-          key={z.key}
-          className="flow-zone__head flow-zone__head--fixed"
-          style={{ left: z.x, top: z.headerTier * ZONE_TIER_H, width: z.width, right: "auto" }}
+          key={b.key}
+          className="flow-band__label"
+          style={{ left: b.x + 14, top: b.y + 8, ["--th" as string]: `var(--thread-${b.thread}, #6ea8ff)` }}
         >
-          <span className="flow-zone__kicker">{z.kicker}</span>
-          <span className="flow-zone__title">{z.title}</span>
-          <span className="flow-zone__range">{z.rangeLabel}</span>
+          <span className="flow-band__name">{b.label}</span>
+          {b.rangeLabel && <span className="flow-band__range">{b.rangeLabel}</span>}
         </div>
       ))}
     </div>
@@ -296,13 +266,13 @@ function FixedFrame({
   width,
   height,
   stems,
-  zones,
+  bands,
 }: {
   axis: TimelineAxis;
   width: number;
   height: number;
   stems: { cx: number; cy: number; ghost?: boolean }[];
-  zones: ZoneBand[];
+  bands: SwimBand[];
 }) {
   const { x, y, zoom } = useViewport();
   return (
@@ -311,7 +281,7 @@ function FixedFrame({
         className="flow-fixedframe__inner"
         style={{ transform: `translate(${x}px, ${y}px) scale(${zoom})` }}
       >
-        <ZoneHeaderLayer zones={zones} />
+        <BandLabelLayer bands={bands} />
         <TimelineAxisLayer axis={axis} width={width} height={height} stems={stems} />
       </div>
     </div>
@@ -690,17 +660,17 @@ function FlowCanvasInner({
       }
     >
       <Background variant={BackgroundVariant.Dots} gap={30} size={1} color="#20262f" />
-      {/* Substrate (tilts in 3D, §10.6): zone tints + thread sub-containers. */}
+      {/* Substrate (tilts in 3D, §10.6): horizontal swim-lane band strips. */}
       <ViewportPortal>
-        <ZoneSubstrateLayer zones={layout.zones} subgroups={layout.subgroups} />
+        <BandSubstrateLayer bands={layout.bands} />
       </ViewportPortal>
-      {/* Fixed reading frame (never tilts, §10.6): time axis + chapter headers. */}
+      {/* Fixed reading frame (never tilts, §10.6): time axis + band labels. */}
       <FixedFrame
         axis={layout.axis}
         width={layout.width}
         height={layout.height}
         stems={stems}
-        zones={layout.zones}
+        bands={layout.bands}
       />
       <Controls showInteractive={false} />
       <MiniMap

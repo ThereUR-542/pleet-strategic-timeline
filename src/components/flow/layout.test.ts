@@ -69,16 +69,26 @@ describe("computeTimelineLayout", () => {
     expect(printing.cx - formed.cx).toBeGreaterThan(400);
   });
 
-  it("keeps lanes on a uniform vertical grid, nothing overlapping (PLE-133)", () => {
-    const cys = [...new Set(layout.nodes.map((n) => Math.round(n.cy)))].sort(
-      (a, b) => a - b,
-    );
-    if (cys.length > 1) {
-      const step = cys[1] - cys[0];
-      for (let i = 1; i < cys.length; i++) {
-        expect((cys[i] - cys[0]) % step).toBe(0);
-      }
+  it("organizes threads into horizontal swim-lane bands (PLE-133)", () => {
+    // One band per thread present in the data; bands carry a label.
+    expect(layout.bands.length).toBeGreaterThan(4);
+    expect(layout.bands.every((b) => b.label.length > 0)).toBe(true);
+  });
+
+  it("never overlaps two BANDS (the immiscible-liquid rule, PLE-133)", () => {
+    const sorted = [...layout.bands].sort((a, b) => a.y - b.y);
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = sorted[i - 1];
+      const cur = sorted[i];
+      expect(cur.y).toBeGreaterThanOrEqual(prev.y + prev.height); // no vertical overlap
     }
+  });
+
+  it("distributes bands ABOUT the centred time axis (+Y and −Y)", () => {
+    const oy = layout.axis.y;
+    const above = layout.nodes.some((n) => n.cy < oy);
+    const below = layout.nodes.some((n) => n.cy > oy);
+    expect(above && below).toBe(true);
   });
 
   it("ordinal mode (the rejected reading, behind the flag) still builds even columns", () => {

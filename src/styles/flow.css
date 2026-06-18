@@ -882,6 +882,50 @@
   border: 1px solid color-mix(in srgb, var(--th) var(--subgroup-border-pct), transparent);
 }
 
+/* ── PLE-133 swim-lane bands: "immiscible liquid" horizontal strata, one per
+   thread, full-width, NON-overlapping, stacked ±Y about the centred time axis.
+   Tinted by the thread color (--th); a solid left cap reads the band's identity
+   without filling the strip (keeps cards/edges legible at TV scale). */
+.flow-band-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+.flow-band {
+  position: absolute;
+  background: color-mix(in srgb, var(--th) 7%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--th) 24%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--th) 14%, transparent);
+  border-left: 3px solid color-mix(in srgb, var(--th) 80%, transparent);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+.flow-band--alt {
+  background: color-mix(in srgb, var(--th) 4%, transparent);
+}
+.flow-band__label {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 2px var(--space-3);
+  background: color-mix(in srgb, var(--th) 16%, var(--bg-0));
+  border: 1px solid color-mix(in srgb, var(--th) 42%, transparent);
+  border-radius: var(--radius-chip);
+}
+.flow-band__name {
+  font-size: var(--text-2xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--th);
+}
+.flow-band__range {
+  font-size: var(--text-3xs);
+  color: var(--text-low);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Octopus hub: a `concept` node ≥3 edges converge on. Pill shape + concept
    border so it reads as a convergence point, not a card (spec §3.3). */
 .flow-node--hub {
