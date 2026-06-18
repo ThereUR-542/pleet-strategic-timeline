@@ -56,8 +56,9 @@ right mental model, and the per-value map below removes all ambiguity for the mi
 | `--space-8` | 32px | `32px` (1 · exact) |
 | `--space-10` | 40px | `40px` (1 · exact) |
 
-**Snaps (the only deltas in spacing):** `3px→4`, `5px→4`, `7px→6`, `9px→8`, `13px→12`.
+**Snaps (the only deltas in spacing):** `3px→2`, `5px→4`, `7px→6`, `9px→8`, `13px→12`.
 All −1px, on incidental paddings/gaps. Max spacing delta anywhere = **1px**.
+(The per-value table above is authoritative; `3px` maps to `--space-0-5` = 2px.)
 
 **Note on half-steps:** they are deliberate. `6/10/14/18/22px` are frequent (≈54 uses combined);
 forcing them onto a pure 4px grid would shift ±2px across many elements and *would* be visible.
