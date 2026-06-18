@@ -48,6 +48,20 @@
       "suggestedUse": "Portrait",
       "node": "person: Joshua Bowers \u2014 Jun 23 Mayor meeting attendee (\u00a78.6)",
       "confirmedName": true
+    },
+    {
+      "file": "bo-jett-card.png",
+      "kind": "card",
+      "suggestedUse": "Business card \u2014 wired into person node modal",
+      "node": "person: Bo Jett \u2014 Senior VP, Commercial Lending, IBC Bank (n-bo-jett)",
+      "confirmedName": true
+    },
+    {
+      "file": "daniel-regan-card.png",
+      "kind": "card",
+      "suggestedUse": "Business card \u2014 wired into person node modal",
+      "node": "person: Daniel Regan \u2014 Director of Real Estate & Business Development, Tulsa Airports Improvement Trust (n-daniel-regan)",
+      "confirmedName": true
     }
   ],
   "notes": "Filenames inferred from attachment labels; CEO did not open the images. Confirm Kayla/Lawrence portrait identities against the photos before publishing on a person node."
