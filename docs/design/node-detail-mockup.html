@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PLE-101 — Node detail experience mockup (zoho-map parity)</title>
+<style>
+  /* ─────────────────────────────────────────────────────────────────────────
+     PLE-101 mockup. All values are the REAL PLE-99 tokens (--space-* / type) +
+     flowTheme NodeType/EdgeKind colors. This file is a board direction-check
+     artifact AND the eng-handoff reference: every rule here maps to a token.
+     Open in any browser. Two framed surfaces: 1440×900 desktop, 390×844 mobile.
+     ───────────────────────────────────────────────────────────────────────── */
+  :root {
+    /* base */
+    --bg-0:#0a0c11; --bg-1:#0f1218; --panel:#0e1117;
+    /* PROPOSED semantic text tokens (replaces scattered hex in flow.css) */
+    --text-hi:#f4f6fb; --text-mid:#d7dde9; --text-low:#8b94a7;
+    /* NodeType colors (flowTheme.NODE_COLOR) */
+    --node-person:#6ea8ff; --node-project:#57e0a8; --node-event:#f59e0b; --node-concept:#c084fc;
+    /* EdgeKind colors (flowTheme.EDGE_COLOR) — connections chips */
+    --edge-finances:#f59e0b; --edge-owns:#6ea8ff; --edge-converges_on:#a78bfa;
+    /* spacing (PLE-99, 2px grid) */
+    --space-0-5:2px; --space-1:4px; --space-1-5:6px; --space-2:8px; --space-2-5:10px;
+    --space-3:12px; --space-3-5:14px; --space-4:16px; --space-4-5:18px; --space-5:20px;
+    --space-6:24px; --space-7:28px;
+    /* type sizes (PLE-99) */
+    --text-3xs:9px; --text-2xs:10px; --text-xs:11px; --text-sm:12px; --text-md:13px;
+    --text-lg:14px; --text-xl:16px; --text-2xl:18px;
+    /* weight + leading (PLE-99) */
+    --fw-medium:500; --fw-semibold:600; --fw-bold:700;
+    --lead-tight:1.3; --lead-normal:1.5; --lead-relaxed:1.6;
+    /* PROPOSED radii tokens */
+    --radius-chip:999px; --radius-md:10px; --radius-panel:20px;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:#05060a; color:var(--text-hi);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    padding:40px; display:flex; flex-wrap:wrap; gap:48px; align-items:flex-start;
+  }
+  .frame-label { font-size:13px; color:var(--text-low); margin:0 0 10px; letter-spacing:.04em; }
+  .frame-label b { color:var(--text-hi); font-weight:var(--fw-semibold); }
+
+  /* fake graph canvas behind the panel, to prove "docked, never stacked" */
+  .canvas {
+    position:relative; overflow:hidden; background:
+      radial-gradient(1200px 600px at 20% -10%, rgba(110,168,255,.16), transparent 60%),
+      radial-gradient(900px 500px at 90% 10%, rgba(87,224,168,.10), transparent 55%),
+      var(--bg-0);
+  }
+  .canvas::before { /* faint node-graph texture */
+    content:""; position:absolute; inset:0; opacity:.5;
+    background-image:radial-gradient(circle, rgba(255,255,255,.06) 1px, transparent 1.4px);
+    background-size:46px 46px;
+  }
+  .pill-node {
+    position:absolute; width:150px; height:64px; border-radius:36px;
+    background:rgba(20,22,28,.6); border:1px solid rgba(255,255,255,.12);
+    backdrop-filter:blur(8px); display:flex; flex-direction:column; justify-content:center;
+    padding:0 16px; font-size:11px; color:var(--text-mid);
+  }
+  .pill-node b { color:var(--text-hi); font-size:12.5px; font-weight:var(--fw-semibold); }
+  .pill-node.sel { outline:2px solid var(--node-project); outline-offset:2px; }
+
+  /* ───── DESKTOP frame: 1440×900, panel docked in its OWN column ───── */
+  .desktop { width:1440px; height:900px; }
+  .desktop .stage { display:flex; width:100%; height:840px; border:1px solid rgba(255,255,255,.12); border-radius:8px; overflow:hidden; }
+  .desktop .canvas { flex:1 1 auto; }
+
+  /* ───── the DETAIL PANEL (shared structure) ───── */
+  .detail {
+    flex:0 0 400px; width:400px; display:flex; flex-direction:column;
+    background:var(--panel); border-left:1px solid rgba(255,255,255,.10);
+    border-top:2px solid var(--type, var(--node-project)); /* type-keyed top border */
+    min-height:0;
+  }
+  .detail__head { padding:var(--space-5) var(--space-5) var(--space-4); border-bottom:1px solid rgba(255,255,255,.08); position:relative; }
+  .tag {
+    display:inline-flex; align-items:center; gap:var(--space-1-5);
+    font-size:var(--text-2xs); font-weight:var(--fw-semibold); letter-spacing:.06em; text-transform:uppercase;
+    color:var(--type, var(--node-project));
+    background:color-mix(in srgb, var(--type, var(--node-project)) 14%, transparent);
+    padding:var(--space-1) var(--space-2-5); border-radius:var(--radius-chip);
+  }
+  .tag .dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .detail__title { margin:var(--space-2-5) 0 0; font-size:var(--text-2xl); font-weight:var(--fw-bold); line-height:var(--lead-tight); color:var(--text-hi); padding-right:var(--space-7); }
+  .detail__meta { margin:var(--space-1-5) 0 0; font-size:var(--text-xs); color:var(--text-low); font-variant-numeric:tabular-nums; display:flex; align-items:center; gap:var(--space-2); }
+  .state-chip { font-size:var(--text-3xs); font-weight:var(--fw-semibold); letter-spacing:.05em; text-transform:uppercase; padding:1px var(--space-1-5); border-radius:var(--radius-chip); }
+  .state-chip.today { color:#0a0c11; background:var(--node-project); }
+  .detail__close {
+    position:absolute; top:var(--space-3); right:var(--space-3); width:32px; height:32px;
+    display:grid; place-items:center; background:none; border:none; color:var(--text-low);
+    font-size:var(--text-xl); cursor:pointer; border-radius:8px; line-height:1;
+  }
+  .detail__close:hover { color:var(--text-hi); background:rgba(255,255,255,.08); }
+
+  .detail__scroll { flex:1 1 auto; overflow-y:auto; padding:var(--space-4) var(--space-5) var(--space-7); }
+
+  .note, .demand {
+    font-size:var(--text-sm); border-radius:var(--radius-md); padding:var(--space-2) var(--space-2-5);
+    margin-bottom:var(--space-3); line-height:var(--lead-normal);
+  }
+  .note { color:#fbbf24; background:rgba(251,191,36,.10); border:1px solid rgba(251,191,36,.30); }
+  .demand { color:var(--node-project); background:rgba(87,224,168,.08); border:1px solid rgba(87,224,168,.25); font-variant-numeric:tabular-nums; }
+
+  .detail__body { font-size:var(--text-md); line-height:var(--lead-relaxed); color:var(--text-mid); }
+  .detail__body p { margin:0 0 var(--space-3); }
+  .detail__body strong { color:var(--text-hi); font-weight:var(--fw-semibold); }
+
+  .section-label { font-size:var(--text-xs); text-transform:uppercase; letter-spacing:.08em; color:var(--text-low); margin:var(--space-4-5) 0 var(--space-2); }
+
+  /* KEY FACTS — the core "more detail" addition */
+  .facts { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:var(--space-2); }
+  .facts li { display:grid; grid-template-columns:auto 1fr; gap:var(--space-2-5); font-size:var(--text-sm); line-height:var(--lead-normal); color:var(--text-mid); }
+  .facts li::before { content:""; width:6px; height:6px; margin-top:6px; border-radius:50%; background:var(--type, var(--node-project)); }
+  .facts .k { color:var(--text-low); }
+  .facts .v { color:var(--text-hi); }
+
+  /* CONNECTIONS — edge chips (delighter / phase-2) */
+  .conns { display:flex; flex-wrap:wrap; gap:var(--space-1-5); }
+  .conn {
+    display:inline-flex; align-items:center; gap:var(--space-1-5); font-size:var(--text-xs);
+    color:var(--text-mid); background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.10);
+    padding:var(--space-1) var(--space-2-5); border-radius:var(--radius-chip);
+  }
+  .conn .rel { color:var(--ek); font-weight:var(--fw-semibold); }
+
+  .media { margin-top:var(--space-4); height:128px; border-radius:var(--radius-md); border:1px solid rgba(255,255,255,.10);
+    background:linear-gradient(135deg, rgba(87,224,168,.12), rgba(110,168,255,.10)); display:grid; place-items:center; color:var(--text-low); font-size:var(--text-xs); }
+
+  /* FOOTER citation — reference parity (top border + compact source line) */
+  .detail__foot { flex:0 0 auto; border-top:1px solid rgba(255,255,255,.08); padding:var(--space-3) var(--space-5); font-size:var(--text-xs); color:var(--text-low); line-height:var(--lead-normal); }
+  .detail__foot a { color:var(--node-person); text-decoration:none; }
+
+  /* ───── MOBILE frame: 390×844, bottom sheet (graph dimmed, NOT a floating card) ───── */
+  .mobile { width:390px; }
+  .mobile .stage { position:relative; width:390px; height:844px; border:1px solid rgba(255,255,255,.12); border-radius:28px; overflow:hidden; }
+  .mobile .canvas { position:absolute; inset:0; }
+  .mobile .scrim { position:absolute; inset:0; background:rgba(5,6,10,.55); backdrop-filter:blur(2px); }
+  .mobile .detail {
+    position:absolute; left:0; right:0; bottom:0; width:100%; height:88%;
+    border-left:none; border-top:2px solid var(--type, var(--node-project));
+    border-radius:var(--radius-panel) var(--radius-panel) 0 0;
+  }
+  .mobile .grabber { width:36px; height:4px; border-radius:var(--radius-chip); background:rgba(255,255,255,.22); margin:var(--space-2) auto var(--space-0-5); }
+</style>
+</head>
+<body>
+
+<!-- ════════ DESKTOP 1440×900 ════════ -->
+<div class="desktop">
+  <p class="frame-label">Desktop — <b>1440 × 900</b> · detail docked in its own column (canvas resizes; nothing stacked)</p>
+  <div class="stage">
+    <div class="canvas">
+      <div class="pill-node" style="left:90px; top:120px;"><span style="color:var(--node-event)">Event</span><b>Kayla Lee — first meeting</b></div>
+      <div class="pill-node sel" style="left:330px; top:300px;"><span style="color:var(--node-project)">Project</span><b>Oswego — Council approval</b></div>
+      <div class="pill-node" style="left:620px; top:200px;"><span style="color:var(--node-person)">Person</span><b>Timothy C. Janak</b></div>
+      <div class="pill-node" style="left:560px; top:470px;"><span style="color:var(--node-project)">Project</span><b>Oswego — printing begins</b></div>
+    </div>
+
+    <!-- DETAIL PANEL — NodeType=project → --type = green -->
+    <aside class="detail" style="--type:var(--node-project);">
+      <header class="detail__head">
+        <span class="tag"><span class="dot"></span>Project · Oswego</span>
+        <h2 class="detail__title">Oswego Project — Tulsa City Council final approval</h2>
+        <p class="detail__meta"><span>Jun 17, 2026</span><span class="state-chip today">Today</span></p>
+        <button class="detail__close" aria-label="Close">✕</button>
+      </header>
+
+      <div class="detail__scroll">
+        <div class="demand">THEORETICAL demand score: 84 / 100 (§5.2/§6.2 — illustrative)</div>
+
+        <div class="detail__body">
+          <p><strong>Tulsa City Council</strong> votes to pass — <strong>final approval</strong> of the
+          <strong>Oswego Project</strong>, Pleet's first Tulsa printing job. Present-day "Today" anchor (§4.7).</p>
+        </div>
+
+        <p class="section-label">Key facts</p>
+        <ul class="facts">
+          <li><span><span class="k">Decision:</span> <span class="v">Council vote to pass — unanimous final approval</span></span></li>
+          <li><span><span class="k">Property owner:</span> <span class="v">Timothy C. Janak, Esq. (Pleet General Counsel)</span></span></li>
+          <li><span><span class="k">Significance:</span> <span class="v">Pleet's first approved Tulsa printing job</span></span></li>
+          <li><span><span class="k">Thread:</span> <span class="v">Oswego · "Today" anchor (§4.7)</span></span></li>
+        </ul>
+
+        <p class="section-label">Connections</p>
+        <div class="conns">
+          <span class="conn" style="--ek:var(--edge-owns)"><span class="rel">Owns →</span> Timothy C. Janak</span>
+          <span class="conn" style="--ek:var(--edge-converges_on)"><span class="rel">Converges on →</span> Oswego printing begins</span>
+        </div>
+
+        <div class="media">imagery / map embed (§4.4) — when node has media</div>
+      </div>
+
+      <footer class="detail__foot">Source: PRD §1 — Oswego Project approval · <a href="#">Works Cited (2)</a></footer>
+    </aside>
+  </div>
+</div>
+
+<!-- ════════ MOBILE 390×844 ════════ -->
+<div class="mobile">
+  <p class="frame-label">Mobile — <b>390 × 844</b> · bottom sheet, graph dimmed behind (conventional sheet, not a card floating over a busy graph)</p>
+  <div class="stage">
+    <div class="canvas">
+      <div class="pill-node" style="left:30px; top:90px; transform:scale(.8)"><span style="color:var(--node-event)">Event</span><b>Kayla Lee</b></div>
+      <div class="pill-node" style="left:150px; top:200px; transform:scale(.8)"><span style="color:var(--node-project)">Project</span><b>Oswego</b></div>
+    </div>
+    <div class="scrim"></div>
+
+    <aside class="detail" style="--type:var(--node-project);">
+      <div class="grabber"></div>
+      <header class="detail__head" style="padding-top:var(--space-2)">
+        <span class="tag"><span class="dot"></span>Project · Oswego</span>
+        <h2 class="detail__title">Oswego Project — Council final approval</h2>
+        <p class="detail__meta"><span>Jun 17, 2026</span><span class="state-chip today">Today</span></p>
+        <button class="detail__close" aria-label="Close">✕</button>
+      </header>
+
+      <div class="detail__scroll">
+        <div class="demand">THEORETICAL demand score: 84 / 100 (§5.2/§6.2)</div>
+        <div class="detail__body">
+          <p><strong>Tulsa City Council</strong> votes to pass — <strong>final approval</strong> of the
+          <strong>Oswego Project</strong>, Pleet's first Tulsa printing job.</p>
+        </div>
+        <p class="section-label">Key facts</p>
+        <ul class="facts">
+          <li><span><span class="k">Decision:</span> <span class="v">Council vote to pass — unanimous</span></span></li>
+          <li><span><span class="k">Property owner:</span> <span class="v">Timothy C. Janak, Esq.</span></span></li>
+          <li><span><span class="k">Significance:</span> <span class="v">First approved Tulsa printing job</span></span></li>
+        </ul>
+        <p class="section-label">Connections</p>
+        <div class="conns">
+          <span class="conn" style="--ek:var(--edge-owns)"><span class="rel">Owns →</span> T. Janak</span>
+          <span class="conn" style="--ek:var(--edge-converges_on)"><span class="rel">Converges on →</span> printing begins</span>
+        </div>
+      </div>
+
+      <footer class="detail__foot">Source: PRD §1 · <a href="#">Works Cited (2)</a></footer>
+    </aside>
+  </div>
+</div>
+
+</body>
+</html>
