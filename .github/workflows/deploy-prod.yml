@@ -42,7 +42,11 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: NODE_ENV=production npm ci --omit=dev
+        # Build toolchain (typescript, vite, @vitejs/plugin-react, vitest, jsdom)
+        # lives in devDependencies and `tsc -b` typechecks src (incl. *.test.ts with
+        # types: ["vitest/globals"]). --omit=dev strips it → build fails (PLE-131).
+        # Match the green CI: install dev deps. Vite emits static assets, so dev deps ship nothing.
+        run: npm ci
 
       - name: Build
         run: npm run build
