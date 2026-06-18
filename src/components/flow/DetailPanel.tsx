@@ -13,6 +13,7 @@ import { useEffect, useMemo, useRef } from "react";
 import type { CSSProperties } from "react";
 import type { Edge, IsoDate, TimelineNode, Citation } from "../../data/types";
 import { renderMla } from "../../lib/mla";
+import { externalLinkProps } from "../../lib/links";
 import { renderInline } from "../../lib/inlineMarkdown";
 import { temporalStateFor } from "../../lib/temporal";
 import { MediaEmbed } from "../modal/MediaEmbed";
@@ -235,6 +236,10 @@ export function DetailPanel({ node, citations, edges, nodes, today, onClose }: P
                   {renderMla(c).map((seg, i) =>
                     seg.kind === "em" ? (
                       <em key={i}>{seg.value}</em>
+                    ) : seg.kind === "link" ? (
+                      <a key={i} className="detail-panel__cite-link" {...externalLinkProps(seg.href)}>
+                        {seg.value}
+                      </a>
                     ) : (
                       <span key={i}>{seg.value}</span>
                     ),

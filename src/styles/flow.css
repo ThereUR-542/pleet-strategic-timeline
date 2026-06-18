@@ -561,6 +561,13 @@
   color: #aeb6c6;
   line-height: var(--leading-relaxed);
 }
+/* Clickable source URL/DOI inside a Works-Cited entry (PLE-148). */
+.detail-panel__cite-link {
+  color: #6ea8ff;
+  text-decoration: none;
+  word-break: break-word;
+}
+.detail-panel__cite-link:hover { text-decoration: underline; }
 
 /* FOOTER — compact, pinned source line (reference parity). */
 .detail-panel__foot {

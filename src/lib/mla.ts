@@ -7,8 +7,16 @@
 
 import type { Citation, MlaContainer } from "../data/types";
 
-/** One run of rendered text — plain or italic. */
-export type MlaSegment = { kind: "text"; value: string } | { kind: "em"; value: string };
+/**
+ * One run of rendered text. `text` = plain, `em` = italic, `link` = clickable
+ * external anchor (URL/DOI location) — `value` is the display string, `href`
+ * the full target. Callers that flatten to plain text use `value` only, so the
+ * text output is identical whether a location is a link or not.
+ */
+export type MlaSegment =
+  | { kind: "text"; value: string }
+  | { kind: "em"; value: string }
+  | { kind: "link"; value: string; href: string };
 
 /** Sequence of segments representing one MLA-9 Works-Cited entry. */
 export type RenderedMla = MlaSegment[];
@@ -19,18 +27,48 @@ const MONTHS = [
   "July", "Aug.", "Sept.", "Oct.", "Nov.", "Dec.",
 ];
 
-function formatAccessDate(iso: string): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  return `${d} ${MONTHS[m - 1]} ${y}`;
+/**
+ * Format an access date for display. The live data contract stores MLA human
+ * dates verbatim ("18 June 2026"); test fixtures use ISO ("2026-06-18"). Only
+ * a strict ISO `YYYY-MM-DD` is reformatted — anything else (already-formatted
+ * MLA, "n.d.", etc.) passes through untouched. This is what prevents the
+ * "Accessed undefined undefined NaN" defect (PLE-148) on the deployed dataset.
+ */
+function formatAccessDate(raw: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  if (!m) return raw;
+  const [, y, mo, d] = m;
+  return `${Number(d)} ${MONTHS[Number(mo) - 1]} ${Number(y)}`;
 }
 
-function normalizeLocation(loc: string, isDoi: boolean): string {
+/**
+ * Resolve a location slot to display text + an optional href. URLs and DOIs
+ * become clickable links (PLE-148); non-URL strings (e.g. "PDF", "pp. 100-110")
+ * stay plain text. Display text matches the legacy `normalizeLocation` output
+ * exactly, so flattened plain-text rendering is unchanged.
+ */
+// A bare domain or domain/path with NO scheme and NO whitespace — the form the
+// live MLA data stores ("cityoftulsa.org/press-room/...", "flytulsa.com"). The
+// no-whitespace anchor keeps addresses ("Waterfront Grill, Jenks, OK"), page
+// ranges ("pp. 100-110") and tokens like "PDF" out — they stay plain text.
+const BARE_URL = /^[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:\/\S*)?$/i;
+
+function locationSegment(loc: string, isDoi: boolean): MlaSegment {
   if (isDoi) {
-    // DOI → always https://doi.org/ prefix.
-    return loc.startsWith("https://doi.org/") ? loc : `https://doi.org/${loc}`;
+    // DOI → always https://doi.org/ prefix; display the full doi.org URL.
+    const href = loc.startsWith("https://doi.org/") ? loc : `https://doi.org/${loc}`;
+    return { kind: "link", value: href, href };
   }
-  // Strip http(s):// from live URLs; leave non-URL strings (e.g. "PDF") as-is.
-  return loc.replace(/^https?:\/\//, "");
+  if (/^https?:\/\//i.test(loc)) {
+    // URL with scheme → strip scheme for display, link to the full original URL.
+    return { kind: "link", value: loc.replace(/^https?:\/\//, ""), href: loc };
+  }
+  if (BARE_URL.test(loc)) {
+    // Scheme-less live URL → display verbatim, link via an https:// href.
+    return { kind: "link", value: loc, href: `https://${loc}` };
+  }
+  // Non-URL location (e.g. "PDF", address, page range) — leave as plain text.
+  return { kind: "text", value: loc };
 }
 
 function renderContainer(c: MlaContainer, isDoi: boolean): MlaSegment[] {
@@ -42,7 +80,7 @@ function renderContainer(c: MlaContainer, isDoi: boolean): MlaSegment[] {
   if (c.number)            parts.push([{ kind: "text", value: c.number }]);
   if (c.publisher)         parts.push([{ kind: "text", value: c.publisher }]);
   if (c.pubDate)           parts.push([{ kind: "text", value: c.pubDate }]);
-  if (c.location)          parts.push([{ kind: "text", value: normalizeLocation(c.location, isDoi) }]);
+  if (c.location)          parts.push([locationSegment(c.location, isDoi)]);
 
   const out: MlaSegment[] = [];
   for (let i = 0; i < parts.length; i++) {

@@ -129,6 +129,61 @@ describe("URL and DOI location handling", () => {
     expect(renderMlaText(c)).toContain("PDF");
   });
 
+  it("URL location → clickable link segment with full href, scheme-stripped display (PLE-148)", () => {
+    const c = makeBase({
+      titleSource: "Article",
+      container1: { title: "Site", otherContributors: null, version: null, number: null, publisher: null, pubDate: "2023", location: "https://www.example.com/path" },
+    });
+    const link = renderMla(c).find((s) => s.kind === "link");
+    expect(link).toBeDefined();
+    expect(link).toMatchObject({ kind: "link", value: "www.example.com/path", href: "https://www.example.com/path" });
+    // Plain-text flattening is unchanged (scheme-stripped display).
+    expect(renderMlaText(c)).toContain("www.example.com/path");
+    expect(renderMlaText(c)).not.toContain("https://");
+  });
+
+  it("DOI location → link segment href'd to https://doi.org/ (PLE-148)", () => {
+    const c = makeBase({
+      titleSource: "A Study",
+      container1: { title: "J. Research", otherContributors: null, version: null, number: null, publisher: null, pubDate: "2021", location: "10.1234/abc.567" },
+      isDoi: true,
+    });
+    const link = renderMla(c).find((s) => s.kind === "link");
+    expect(link).toMatchObject({ kind: "link", href: "https://doi.org/10.1234/abc.567" });
+  });
+
+  it("scheme-less live URL ('cityoftulsa.org/...') → link with https:// href, display verbatim (PLE-148)", () => {
+    // This is the form the live data actually stores — must still be clickable.
+    const c = makeBase({
+      titleSource: "Article",
+      container1: { title: "Site", otherContributors: null, version: null, number: null, publisher: null, pubDate: "2024", location: "cityoftulsa.org/press-room/welcomes-new-mayor" },
+    });
+    const link = renderMla(c).find((s) => s.kind === "link");
+    expect(link).toMatchObject({
+      kind: "link",
+      value: "cityoftulsa.org/press-room/welcomes-new-mayor",
+      href: "https://cityoftulsa.org/press-room/welcomes-new-mayor",
+    });
+  });
+
+  it("address location → plain text, NOT a link (PLE-148: no false-positive linking)", () => {
+    const c = makeBase({
+      titleSource: "Lunch",
+      container1: { title: null, otherContributors: null, version: null, number: null, publisher: null, pubDate: "2026", location: "Waterfront Grill, Jenks, OK" },
+    });
+    expect(renderMla(c).some((s) => s.kind === "link")).toBe(false);
+    expect(renderMlaText(c)).toContain("Waterfront Grill, Jenks, OK");
+  });
+
+  it("non-URL location ('PDF') → plain text, NOT a link (PLE-148)", () => {
+    const c = makeBase({
+      titleSource: "Doc",
+      container1: { title: null, otherContributors: null, version: null, number: null, publisher: null, pubDate: "2024", location: "PDF" },
+    });
+    expect(renderMla(c).some((s) => s.kind === "link")).toBe(false);
+    expect(renderMlaText(c)).toContain("PDF");
+  });
+
   it("isDoi: true → adds https://doi.org/ prefix", () => {
     const c = makeBase({
       author: "Jones, Mary",
@@ -179,6 +234,20 @@ describe("access date formatting", () => {
     const c = makeBase({ titleSource: "My Site", accessDate: "2024-01-05" });
     const text = renderMlaText(c);
     expect(text).toContain("Accessed 5 Jan. 2024.");
+  });
+
+  it("already-formatted MLA access date passes through verbatim (PLE-148: no 'undefined NaN')", () => {
+    // The live data contract stores human MLA dates ("18 June 2026") verbatim;
+    // formatAccessDate must NOT mangle them into "undefined undefined NaN".
+    const c = makeBase({
+      titleSource: "Web Page",
+      container1: { title: "A Site", otherContributors: null, version: null, number: null, publisher: null, pubDate: null, location: "example.com" },
+      accessDate: "18 June 2026",
+    });
+    const text = renderMlaText(c);
+    expect(text).toContain("Accessed 18 June 2026");
+    expect(text).not.toContain("undefined");
+    expect(text).not.toContain("NaN");
   });
 
   it("access date omitted when not set", () => {
