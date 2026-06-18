@@ -3,7 +3,7 @@
 // axis carries month ticks + a today marker reading left→right in time.
 
 import { describe, it, expect } from "vitest";
-import { NODES, EDGES } from "../../data/content";
+import { NODES, EDGES } from "../../data/timeline-fixture";
 import { computeTimelineLayout, effectiveDate, NODE_W, NODE_H } from "./layout";
 
 const TODAY = "2026-06-17";

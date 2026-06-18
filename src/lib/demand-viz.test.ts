@@ -4,7 +4,7 @@
 // =============================================================================
 
 import { describe, it, expect } from "vitest";
-import { DEMAND_MODEL, NODES } from "../data/content";
+import { DEMAND_MODEL, NODES } from "../data/timeline-fixture";
 import { backgroundCurveSamples, projectScores, equipmentStepSeries } from "./demand-viz";
 
 describe("backgroundCurveSamples (§5.1/§6.1)", () => {

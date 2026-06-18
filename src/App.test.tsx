@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import ReactDOM from "react-dom/client";
-import TIMELINE_DATA from "./data/content";
-import { LANES } from "./data/lanes";
+import TIMELINE_DATA, { LANES } from "./data/timeline-fixture";
 
 // PLE-136: content now loads asynchronously from /data/*.yaml. jsdom has no
 // server to fetch from, so we mock the loader with the real content — the guard

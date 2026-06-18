@@ -7,7 +7,6 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "gen:yaml": "vite-node scripts/gen-yaml.ts",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

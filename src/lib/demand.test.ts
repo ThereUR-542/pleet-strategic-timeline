@@ -7,7 +7,7 @@
 // =============================================================================
 
 import { describe, it, expect } from "vitest";
-import { DEMAND_MODEL } from "../data/content";
+import { DEMAND_MODEL } from "../data/timeline-fixture";
 import {
   DUAL_VERIFY_TOLERANCE,
   demandAt,

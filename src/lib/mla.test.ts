@@ -6,7 +6,7 @@
 
 import { describe, it, expect } from "vitest";
 import { renderMla, renderMlaText, mlaAlphaKey } from "./mla";
-import { CITATIONS } from "../data/content";
+import { CITATIONS } from "../data/timeline-fixture";
 import type { Citation } from "../data/types";
 
 // Helpers

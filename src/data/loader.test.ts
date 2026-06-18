@@ -1,16 +1,19 @@
 // =============================================================================
-// PLE-136 acceptance tests: lossless round-trip + graceful located failure.
+// YAML-as-source-of-truth acceptance tests (PLE-136 loader; PLE-141 single
+// source). The three editor-managed public/data/*.yaml files ARE the canonical
+// content now (content.ts retired in PLE-141), so these tests assert that the
+// committed files load, validate, assemble, and are internally consistent —
+// not that they round-trip against any TS literal. Plus graceful located
+// failure (PLE-136 board requirement).
 // =============================================================================
 
 import { describe, it, expect } from "vitest";
 import { parse as parseYaml } from "yaml";
-// Inline the generated YAML as strings (?raw) — jsdom has no fs, and this also
+// Inline the committed YAML as strings (?raw) — jsdom has no fs, and this also
 // proves the committed files parse. Mirrors what the runtime loader fetches.
 import nodesYaml from "../../public/data/nodes.yaml?raw";
 import lanesYaml from "../../public/data/lanes.yaml?raw";
 import connectionsYaml from "../../public/data/connections.yaml?raw";
-import TIMELINE_DATA from "./content";
-import { LANES } from "./lanes";
 import {
   TimelineDataError,
   assembleBundle,
@@ -27,18 +30,19 @@ const RAW: Record<string, string> = {
 };
 const read = (f: string) => parseYaml(RAW[f]);
 
-describe("YAML data files (PLE-136)", () => {
-  const nodesDoc = validateFile("nodes.yaml", nodesFileSchema, read("nodes.yaml"));
-  const lanesDoc = validateFile("lanes.yaml", lanesFileSchema, read("lanes.yaml"));
-  const connectionsDoc = validateFile("connections.yaml", connectionsFileSchema, read("connections.yaml"));
-  const bundle = assembleBundle(nodesDoc, lanesDoc, connectionsDoc);
+const nodesDoc = validateFile("nodes.yaml", nodesFileSchema, read("nodes.yaml"));
+const lanesDoc = validateFile("lanes.yaml", lanesFileSchema, read("lanes.yaml"));
+const connectionsDoc = validateFile("connections.yaml", connectionsFileSchema, read("connections.yaml"));
+const bundle = assembleBundle(nodesDoc, lanesDoc, connectionsDoc);
 
-  it("round-trips losslessly against content.ts (no regression)", () => {
-    expect(bundle.data).toEqual(TIMELINE_DATA);
-  });
-
-  it("lanes round-trip against the registry", () => {
-    expect(bundle.lanes).toEqual(LANES);
+describe("YAML data files (PLE-136 loader / PLE-141 single source)", () => {
+  it("assembles a non-empty, schema-valid bundle from the committed YAML", () => {
+    expect(bundle.data.nodes.length).toBeGreaterThan(0);
+    expect(bundle.data.edges.length).toBeGreaterThan(0);
+    expect(bundle.data.citations.length).toBeGreaterThan(0);
+    expect(bundle.lanes.length).toBeGreaterThan(0);
+    expect(bundle.data.anchorDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(bundle.data.demandModel).toBeTruthy();
   });
 
   it("has a lane for every thread used by a node", () => {
@@ -56,7 +60,7 @@ describe("YAML data files (PLE-136)", () => {
 
 describe("graceful located failure (PLE-136 board requirement)", () => {
   it("reports file + field + reason on a schema violation", () => {
-    const bad = { anchorDate: "nope", demandModel: TIMELINE_DATA.demandModel, citations: [], nodes: [] };
+    const bad = { anchorDate: "nope", demandModel: bundle.data.demandModel, citations: [], nodes: [] };
     try {
       validateFile("nodes.yaml", nodesFileSchema, bad);
       throw new Error("should have thrown");

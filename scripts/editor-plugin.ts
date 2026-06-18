@@ -12,7 +12,7 @@
 // Every endpoint re-runs the EXACT loader gate server-side (validateFile +
 // assembleBundle from src/data/schema.ts) against the posted file PLUS the
 // other two read fresh from disk — defence in depth, identical rules to the
-// client. On pass it writes byte-compatibly with scripts/gen-yaml.ts; on any
+// client. On pass it writes the file with the canonical serializer; on any
 // validation failure it writes NOTHING and returns 422 with located errors. The
 // nodes endpoint preserves the on-disk meta (anchorDate/demandModel/citations)
 // so the board only ever edits the `nodes` array, never the §6 model.
