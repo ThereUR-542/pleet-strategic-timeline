@@ -1,6 +1,6 @@
 # Pleet Strategic Timeline — Source Ledger (Research Lead)
 
-**Owner:** Research Lead · **Updated:** 2026-06-18 (added §A6 Savanna Public Schools identity + bond dates, §A7 OSSBA Convention; closed a §D gap) · **Standard:** every researchable claim carries ≥1 verifiable source; material claims carry **two independent** sources. Lawrence's own notes and the PRD are primary sources and are not subject to the double-sourcing rule, but where independent research **contradicts** a primary-source claim that contradiction is flagged for the board.
+**Owner:** Research Lead · **Updated:** 2026-06-18 (board primary materials landed on [PLE-109](/PLE/issues/PLE-109): **§C1 SQ4D/Aiman discrepancy RESOLVED**, new §B5 primary-document block, Skyland ROM §D gap closed; earlier same-day: §A6 Savanna identity + bond dates, §A7 OSSBA Convention) · **Standard:** every researchable claim carries ≥1 verifiable source; material claims carry **two independent** sources. Lawrence's own notes and the PRD are primary sources and are not subject to the double-sourcing rule, but where independent research **contradicts** a primary-source claim that contradiction is flagged for the board.
 
 > **Intake integration ([PLE-113](/PLE/issues/PLE-113)).** This ledger is the verification standard the supplementary-document intake consumes (`document-intake/`). When a board doc resolves an item below, its intake record names the item in `resolvesLedger:` and updates this file in the same change: **§C/§D items are the closeable targets** (open gaps and discrepancies). Resolved §D items move to §A (double-sourced) or §B (primary-only); resolved §C discrepancies are annotated RESOLVED with the `DOC-NNN` id and the board's decision — discrepancy history is never deleted.
 
@@ -41,8 +41,10 @@ Status legend: **VERIFIED** (≥2 independent reputable sources) · **PARTIAL** 
 - **White Wolf Creative** (whitewolfcreative.tv), Tulsa video/creative studio; **Paul Lawson** (Co-Founder & CEO) and **Nick Bright** (Co-founder) confirmed. *(Sources: whitewolfcreative.tv/about; Nick Bright LinkedIn.)* Street address should be re-checked against current site.
 - **Tulsa Home & Garden Show 2026:** **March 5–8, 2026**, SageNet Center, Expo Square. *(Sources: tulsahba.com; ExpoSquare.com.)* — confirms `n-tulsa-home-garden-show` dates.
 
-### A5. SQ4D — company & milestone VERIFIED (but see DISCREPANCY C1)
+### A5. SQ4D — company & milestone VERIFIED (§C1 contact discrepancy now RESOLVED, 2026-06-18)
 - SQ4D is a real, credible 3D-printed-construction company: listed the **first permitted 3D-printed house for sale in the U.S.** (Riverhead, NY, Jan 2021) printed with its **ARCS** (Autonomous Robotic Construction System); first U.S. 3D-printed residence to receive a certificate of occupancy. *(Sources: PR Newswire, 26 Jan 2021; 3Dnatives, 1 Feb 2021; Greater Long Island, 3 Feb 2021.)*
+- **Contact + entity now confirmed by Lawrence's primary documents** (PLE-109 attachments, 2026-06-18) — see **§B5** for the primary-source block and **§C1** for the resolved discrepancy. The SQ4D **contact** node is no longer gated: **Aiman Hussein, VP of Operations, SQ4D, LLC (NY)**.
+- *Entity-form note (no change required):* the 2021 milestone press release was issued as **"SQ4D Inc."** and the citation `cite-sq4d-prnewswire.otherContributors` correctly preserves that historical attribution. The **current executed contract** entity is **"SQ4D, LLC"** (a NY LLC) — both are accurate as of their respective dates; do **not** retro-edit the 2021 citation. Person/contact nodes correctly use **LLC**.
 
 ### A6. Savanna Public Schools (Oklahoma) — district identity VERIFIED; resolves §D gap
 - **Identity now publicly matched** (closes the former §D "no public match yet" gap): **Savanna Public Schools**, a public district in **Savanna, Pittsburg County, OK** (savanna.k12.ok.us). Independently documented by **Ballotpedia** (district + elections pages) and the **McAlester News-Capital** (repeated local coverage). District identity is now double-sourced.
@@ -66,11 +68,24 @@ These rest on Lawrence's calendar invites, emails, and business cards (primary s
 - **Hayden Hanoch** — Gateway First Bank. **Bonus: publicly double-sourceable** — FOX23 (20 May 2026) names him as a Gateway First Bank VP (Commercial Banking) with a direct quote, + LinkedIn. Build can flip `n-hayden-hanoch` toward `confirmed` and add a title ("VP, Commercial Banking").
 - All calendar-driven event nodes (Lunch with Pleet, Meet Bo, Lunch with Bo, Meeting with Gateway, Mayor meeting roster, etc.) — PRIMARY-ONLY via Brady Deaton's invites (cited in `CITATIONS`). Correct as-is.
 
+### B5. SQ4D ⇄ Pleet commercial relationship — PRIMARY-SOURCE CONFIRMED (PLE-109 attachments, 2026-06-18)
+Six PDFs + three emails Lawrence attached to [PLE-109](/PLE/issues/PLE-109) are **primary sources** (executed contracts, vendor correspondence, vendor-prepared reports). They confirm the following; double-sourcing is **not** required and absence of public corroboration is **not** a defect. CTO's [PLE-113](/PLE/issues/PLE-113) intake will assign each a `DOC-NNN` id and log the supersede in `provenance-log.md`; this ledger names the facts they confirm.
+
+- **Aiman Hussein — VP of Operations, SQ4D, LLC.** Email `aiman@sq4d.com`; calendar invite "SQ4D and Pleet (OK)" with principal **Sal Ferrari** `sal@sq4d.com` as organizer; the **ARC Equipment Lifecycle Report** is "Prepared By: Aiman Hussein | VP of Operations." Spelling settled: **Hussein**. → `n-aiman-hussain`, `n-sq4d-contact` correctly `confirmed`.
+- **Entity = SQ4D, LLC** — a **New York LLC**, registered office **319 W. Main St., Patchogue, NY 11772**, per the executed contracts. This supersedes the public-record "SQ4D Inc." guess (§C1) for the **current** entity. (See A5 entity-form note: the 2021 press-release "Inc." attribution stays as historical.)
+- **Executed SQ4D ⇄ Pleet Master Purchase & Services Agreement** (Pleet 3D), with **Amendment No. 1** (Tribal / Sovereign-Nation **carve-out**, blue-shaded reservation boundaries per National Atlas/USGS) and **Exhibit A — Additional Parts Schedule** (parts + pricing). The equipment relationship is **contracted**, not aspirational — the "no contract asserted" hedge is correctly removed from the contact node.
+- **ARC system Total Acquisition Cost = $1,289,784.34**; build envelope **66′×102′×24′** (ARC Equipment Lifecycle Report, 10-yr outlook). Primary cost input for `src/lib/demand.ts`.
+- **Skyland 3D ROM estimate** — Deaton residence, **Osage County, OK**; **RIC-M1** system; forwarded via Brady Deaton / Rise Up Properties. Closes the §D "Skyland 3D ROM worksheet" gap. *(Note: the "Amy Deaton" in the Skyland ROM is the **client**, not the BancFirst "Amy" — see §D / open §3 names.)*
+
 ---
 
 ## C. DISCREPANCIES — independent research contradicts current build content (ROUTE TO BOARD)
 
-### C1. SQ4D contact + address — DISCREPANCY (material)
+### C1. SQ4D contact + address — ✅ **RESOLVED 2026-06-18** (board primary documents, PLE-109)
+**Resolution (board decision via Lawrence's primary materials — supersedes the public-record research below):** the contact **is Aiman Hussein**, **VP of Operations, SQ4D, LLC** (not Kirk Andersen, not Alquist 3D). Entity = **SQ4D, LLC**, a NY LLC; correct address = **319 W. Main St., Patchogue, NY 11772** (the prior Calverton address was wrong and is removed — it was Skydive Long Island, as research flagged). Spelling = **Hussein**. Confirmed by the executed Master Purchase & Services Agreement + `aiman@sq4d.com`/`sal@sq4d.com` correspondence + the ARC report byline (see **§B5**). Build nodes `n-aiman-hussain`/`n-sq4d-contact` correctly flipped `confirmed` in `content.ts` (commit `3f24571`). Independent public research had a genuine **conflation defect** (Alquist's Aiman Hussein is a different person) — the primary contract is authoritative. *Discrepancy history retained below for audit; do not delete.*
+
+---
+**Original discrepancy (pre-resolution, retained for audit):**
 Current build (`n-aiman-hussain`, `n-sq4d-contact`) asserts **"Aiman Hussein — VP of Operations, SQ4D LLC, 400 David Court, Calverton, NY 11933"** and marks the person node `confirmed`.
 - **Address is wrong:** independent sources place SQ4D's HQ in **Patchogue, NY** (West Main St). **400 David Court, Calverton, NY 11933 is "Skydive Long Island"** (a skydiving operation at Calverton Airport) — not SQ4D.
 - **Contact unverifiable / likely misattributed:** no public source ties **Aiman Hussein** to SQ4D. Aiman Hussein is publicly associated with **Alquist 3D** (a *different* 3D-construction firm), as VP of Technology. SQ4D's publicly documented operations lead is **Kirk Andersen, Director of Operations**.
@@ -96,8 +111,10 @@ These are inherently private and must come from Lawrence (Rule #1: not for a hum
 - **Gene Bulmash** — full name/spelling + City of Tulsa Housing title.
 - ~~**Savanna Schools** — official district identity/location (no public match yet; confirm exact name).~~ **RESOLVED 2026-06-18** → see §A6: Savanna Public Schools, Pittsburg County, OK; double-sourced via Ballotpedia + McAlester News-Capital.
 - **Cherokee $40M** — see C2; confirm intended meaning.
-- **Revenue Maximization Model** — full document (§8.1 BLOCKER).
-- **City of Tulsa housing PDFs**, **Skyland 3D ROM worksheet**, **Legacy Farms / Spoke House** specifics — primary documents pending.
+- **Revenue Maximization Model** — full document (§8.1 BLOCKER). **Still open** — not in the PLE-109 batch. Note: the §B5 ARC acquisition cost ($1,289,784.34) + Skyland ROM now supply the **cost side** of the demand methodology, but the Revenue-Maximization curve itself is still ungrounded.
+- **City of Tulsa housing PDFs** — **still open** (not in the PLE-109 batch). **Legacy Farms / Spoke House** specifics — primary documents pending.
+- ~~**Skyland 3D ROM worksheet**~~ **RESOLVED 2026-06-18** → §B5 (Deaton residence, Osage County OK; RIC-M1 system).
+- **§3 full-name confirmations** (CEO's PLE-109 §3, still board-only): Tim → Timothy C. Janak? · Joshua → Joshua Bowers? · Adam Newman full name/role? · Amy (BancFirst) → K. Cook + OKC vs **Jenks** branch? *(The "Amy Deaton" in the Skyland ROM is a **client**, not the BancFirst Amy — do not conflate.)*
 - **Mayor-meeting roster** (Jun 23) — confirm attendees.
 
 ---
