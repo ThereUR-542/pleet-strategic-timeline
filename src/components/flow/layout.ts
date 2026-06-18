@@ -1,28 +1,30 @@
 // =============================================================================
-// Even/uniform lattice layout (PLE-133, board directive — Lawrence). The board
-// rejected the density-packed zoned spacing: he wants a REGULAR, even lattice.
+// Proportional time-scale layout (PLE-133, board directive — Lawrence).
 //
-//   "The dates along the x-axis must and shall be EVENLY SPACED, and the objects
-//    associated with each of those dates shall be EQUAL DISTANCE from all other
-//    objects proximal. There must be CONTINUITY in spacing … I'll have a big TV."
+// The DELIVERED DEFAULT is a TRUE CALENDAR SCALE (Lawrence, verbatim, PLE-77):
+//   "True calendar scale — the axis is proportional to real time, so longer gaps
+//    between dates show as wider (even) empty space. It is the only way to show
+//    scale."  → clustering reads as momentum, quiet stretches as proportional
+//    empty space. (Equal-width / equidistant columns was an earlier misread of
+//    "even spacing" and is REJECTED — it survives only as the `ordinal` mode for
+//    completeness behind the flag; it is NOT the default.)
 //
-// So spacing is now a uniform grid, NOT content-density packing:
-//   - X (dates): every distinct date is an EQUAL-WIDTH column (COL_STEP apart),
-//     so the date axis is evenly spaced with continuity across the whole canvas.
-//   - Y (nodes): objects sharing a date stack in that date's column on a uniform
-//     row grid (ROW_STEP apart) — a clean, regular lattice; rows align across
-//     every column.
-//   - Size is EMBRACED, not compressed: the canvas grows as wide as it needs;
-//     pan/zoom + Fit (FlowCanvas) read it at TV scale.
-//   - Board-approved structure is preserved: node-graph nodes/edges, chapter
-//     ZONES as grouping bands, the time axis + Today marker, sub-containers,
-//     mobile. The engine still emits plain (x, y); Z-plane depth (PLE-115) rides
-//     on top as a separable transform.
+// So the engine, in the default `calendar` mode:
+//   - X = real time on ONE continuous global axis: equal pixels per unit time
+//     (a 60-day gap is 2× the width of a 30-day gap). Empty time = empty space.
+//   - Y = greedy lane packing so NOTHING overlaps (Lawrence's standing bar);
+//     cards that collide horizontally drop to the next lane. Same-instant /
+//     dense clusters stack into lanes (momentum); quiet stretches stay open.
+//   - Size is EMBRACED, not compressed: the canvas grows as wide as real time
+//     needs; FlowCanvas's fit-to-screen + pan/zoom read it at TV scale.
+//   - Board-approved structure preserved: node-graph nodes/edges + octopus
+//     routing, chapter ZONES as grouping bands (now true temporal spans), the
+//     Today marker, sub-containers, citations, mobile. Engine emits plain (x, y);
+//     Z-plane depth (PLE-115) rides on top as a separable transform.
 //
-// SPACING MODE is a config flag (the open question CEO is confirming with the
-// board): (B) "ordinal" = every distinct date is an equal-width column [DEFAULT];
-// (A) "calendar" = a true linear time scale (equal px per unit time, empty time
-// spans show even blank space). Flip SPACING_MODE — or pass `mode` — to switch.
+// SPACING_MODE is the config flag for the A/B question: `calendar` [DEFAULT,
+// board's pick] vs `ordinal` (equal-width date columns). Flip it — or pass
+// `mode` — to switch with no rework.
 // =============================================================================
 
 import type { Edge, TimelineNode } from "../../data/types";
@@ -31,23 +33,25 @@ import { nodeAxisDate, monthsSinceEpoch } from "../../lib/temporal";
 export const NODE_W = 202;
 export const NODE_H = 60;
 
-/** PLE-133 spacing mode. (B) ordinal = equal-width date columns [board default];
- *  (A) calendar = linear time scale. CEO is confirming the preference; ship B. */
-export type SpacingMode = "ordinal" | "calendar";
-export const SPACING_MODE: SpacingMode = "ordinal";
+/** PLE-133 spacing mode. `calendar` = true proportional time scale [board's
+ *  delivered default]; `ordinal` = equal-width date columns (rejected reading,
+ *  kept behind the flag only). */
+export type SpacingMode = "calendar" | "ordinal";
+export const SPACING_MODE: SpacingMode = "calendar";
 
-// ── Uniform lattice geometry (PLE-99 2px grid; the WHOLE point is regularity) ──
-const COL_GAP = 60; // clear gutter between adjacent date columns
-const COL_STEP = NODE_W + COL_GAP; // 262 — uniform horizontal date spacing
-const ROW_GAP = 36; // clear gutter between stacked nodes in a column
-const ROW_STEP = NODE_H + ROW_GAP; // 96 — uniform vertical node spacing
-const EDGE_PAD = COL_STEP / 2; // left/right canvas breathing room (half a slot)
+// ── Geometry (PLE-99 2px grid) ──
+const PX_PER_MONTH = 200; // calendar mode: equal px per unit time (the scale)
+const LANE_HGAP = 28; // min horizontal gutter between cards sharing a lane
+const ROW_GAP = 28; // vertical gutter between lanes
+const ROW_STEP = NODE_H + ROW_GAP; // 88 — lane-to-lane vertical step
+const EDGE_PAD = 120; // left/right canvas breathing room
 const HEADER_H = 76; // reserved top band for the zone header (kicker/title/range)
-const CONTENT_TOP = HEADER_H + 28; // first row's top
+const CONTENT_TOP = HEADER_H + 28; // first lane's top
 const AXIS_RESERVE = 116; // bottom band reserved for the axis line + date labels
-const MIN_CONTENT_H = 360; // floor so a short lattice still has presence
+const MIN_CONTENT_H = 360; // floor so a short timeline still has presence
 const SUBGROUP_PAD = 16; // padding around a thread cluster's bounding box
-const PX_PER_MONTH = 120; // calendar mode (A): equal px per unit time
+// Ordinal-mode (equal-width column) geometry — only used when mode === "ordinal".
+const COL_STEP = NODE_W + 60; // 262 — uniform horizontal date column step
 
 const MONTHS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -88,7 +92,7 @@ export interface PositionedNode {
 export interface AxisTick {
   x: number;
   label: string;
-  /** Year shown when the year changes (and on the first tick). */
+  /** Year shown under January ticks (and the first tick). */
   sub: string | null;
 }
 
@@ -112,6 +116,8 @@ export interface ZoneBand {
   x: number;
   width: number;
   height: number;
+  /** Vertical tier for the header label so overlapping temporal spans don't collide. */
+  headerTier: number;
 }
 
 /** A thread cluster nested inside a zone (the "colored sub-grouping"). */
@@ -170,14 +176,6 @@ function monthToLabel(m: number): string {
   return `${MONTHS[idx]} ${year}`;
 }
 
-/** "2026-04-01" → { label: "Apr 1", year: 2026 } (parsed without TZ drift). */
-function fmtDate(iso: string): { label: string; year: number } {
-  const [y, m, d] = iso.split("-").map((s) => parseInt(s, 10));
-  const mi = Number.isFinite(m) ? ((m - 1) % 12 + 12) % 12 : 0;
-  const day = Number.isFinite(d) ? d : 1;
-  return { label: `${MONTHS[mi]} ${day}`, year: Number.isFinite(y) ? y : 2026 };
-}
-
 /**
  * Assign a node to a chapter. Primary signal = story thread; fall back to the
  * chapter whose member date-range is nearest the node's effectiveDate so an
@@ -203,16 +201,7 @@ interface EnrichedNode {
   node: TimelineNode;
   eff: string | null;
   months: number | null;
-}
-
-/** One date column in the lattice: every distinct date → an equal-width column. */
-interface Column {
   chapter: number;
-  date: string | null; // null = a truly undated node (own trailing column)
-  months: number | null;
-  members: EnrichedNode[];
-  gi: number; // global column index (order = story chapters, then date asc)
-  cx: number; // center x (resolved per spacing mode)
 }
 
 export function computeTimelineLayout(
@@ -227,10 +216,10 @@ export function computeTimelineLayout(
   const enriched: EnrichedNode[] = nodes.map((n) => {
     const eff = effectiveDate(n, edges, nodeMap);
     const months = eff !== null ? Math.max(0, monthsSinceEpoch(eff)) : null;
-    return { node: n, eff, months };
+    return { node: n, eff, months, chapter: 0 };
   });
 
-  // 2. First pass: thread-based chapter date ranges (for the date-fallback).
+  // 2. Thread-based seed ranges (for the chapter date-fallback).
   const seedRanges = CHAPTERS.map(() => ({ start: Infinity, end: -Infinity }));
   for (const e of enriched) {
     if (e.months === null) continue;
@@ -243,102 +232,95 @@ export function computeTimelineLayout(
   }
 
   // 3. Assign every node to a chapter.
-  const members: EnrichedNode[][] = CHAPTERS.map(() => []);
-  for (const e of enriched) {
-    const ci = chapterFor(e.node.thread, e.months, seedRanges);
-    members[ci].push(e);
-  }
+  for (const e of enriched) e.chapter = chapterFor(e.node.thread, e.months, seedRanges);
 
-  // 4. Final per-chapter date range from actual members (for headers + mode A).
-  const ranges = members.map((ms) => {
-    const monthsList = ms.map((m) => m.months).filter((m): m is number => m !== null);
-    if (monthsList.length === 0) return { start: 0, end: 1 };
-    return { start: Math.min(...monthsList), end: Math.max(...monthsList) };
+  // 4. Per-chapter date range from actual members (for headers).
+  const ranges = CHAPTERS.map((_, ci) => {
+    const ms = enriched.filter((e) => e.chapter === ci && e.months !== null).map((e) => e.months!);
+    if (ms.length === 0) return { start: 0, end: 1 };
+    return { start: Math.min(...ms), end: Math.max(...ms) };
   });
 
-  // 5. BUILD COLUMNS. Per chapter (story order), one column per DISTINCT date
-  //    (sorted asc); truly-undated nodes each get their own trailing column so
-  //    the lattice stays regular and nothing piles up. Global index = order of
-  //    creation → uniform COL_STEP spacing in ordinal mode.
-  const columns: Column[] = [];
-  members.forEach((ms, ci) => {
-    const byDate = new Map<string, EnrichedNode[]>();
-    const undated: EnrichedNode[] = [];
-    for (const m of ms) {
-      if (m.eff) {
-        const bucket = byDate.get(m.eff) ?? byDate.set(m.eff, []).get(m.eff)!;
-        bucket.push(m);
-      } else {
-        undated.push(m);
+  // 5. Global time span (real calendar months) — the scale's domain.
+  const datedMonths = enriched.filter((e) => e.months !== null).map((e) => e.months!);
+  const minM = datedMonths.length ? Math.min(...datedMonths) : 0;
+  const maxM = datedMonths.length ? Math.max(...datedMonths) : 1;
+  const todayM = Math.max(0, monthsSinceEpoch(today));
+
+  // 6. X RESOLVER per spacing mode. Calendar = true proportional time (default).
+  //    Ordinal = equal-width columns, one per distinct date (rejected fallback).
+  let xForNode: (e: EnrichedNode) => number;
+  let xForMonth: (m: number) => number;
+  if (mode === "ordinal") {
+    // Order distinct dates by chapter (story order) then date asc → equal steps.
+    const colIndex = new Map<string, number>();
+    let gi = 0;
+    for (let ci = 0; ci < CHAPTERS.length; ci++) {
+      const dates = [
+        ...new Set(enriched.filter((e) => e.chapter === ci && e.eff).map((e) => e.eff!)),
+      ].sort();
+      for (const d of dates) colIndex.set(`${ci}:${d}`, gi++);
+      // undated members in this chapter each consume a slot
+      for (const e of enriched.filter((e) => e.chapter === ci && !e.eff)) {
+        colIndex.set(`u:${e.node.id}`, gi++);
       }
     }
-    for (const date of [...byDate.keys()].sort()) {
-      columns.push({
-        chapter: ci,
-        date,
-        months: Math.max(0, monthsSinceEpoch(date)),
-        members: byDate.get(date)!,
-        gi: 0,
-        cx: 0,
-      });
-    }
-    for (const m of undated) {
-      columns.push({ chapter: ci, date: null, months: null, members: [m], gi: 0, cx: 0 });
-    }
-  });
-  columns.forEach((c, i) => (c.gi = i));
-
-  // 6. RESOLVE COLUMN X per spacing mode.
-  const ordinalCx = (gi: number) => EDGE_PAD + gi * COL_STEP + COL_STEP / 2;
-  if (mode === "calendar") {
-    // (A) linear time scale: equal px per month; empty spans show even blank.
-    const dated = columns.filter((c) => c.months !== null);
-    const minM = dated.length ? Math.min(...dated.map((c) => c.months!)) : 0;
-    let tail = dated.length ? Math.max(...dated.map((c) => c.months!)) : 0;
-    for (const c of columns) {
-      const m = c.months ?? (tail += 1); // undated trail off the right edge, evenly
-      c.cx = EDGE_PAD + COL_STEP / 2 + (m - minM) * PX_PER_MONTH;
-    }
+    const ordX = (i: number) => EDGE_PAD + i * COL_STEP + COL_STEP / 2;
+    xForNode = (e) =>
+      ordX(e.eff ? colIndex.get(`${e.chapter}:${e.eff}`)! : colIndex.get(`u:${e.node.id}`)!);
+    // Ordinal axis ticks are handled separately below; xForMonth unused there.
+    xForMonth = (m) => EDGE_PAD + (m - minM) * PX_PER_MONTH;
   } else {
-    // (B) ordinal: every distinct date is an equal-width column.
-    for (const c of columns) c.cx = ordinalCx(c.gi);
+    xForMonth = (m) => EDGE_PAD + (m - minM) * PX_PER_MONTH;
+    // Undated (no eff at all) park at the start of the axis.
+    xForNode = (e) => xForMonth(e.months ?? minM);
   }
 
-  // 7. PLACE NODES on the uniform row grid. Members of a column stack from the
-  //    top; rows align across every column → a clean regular lattice. No two
-  //    nodes overlap (COL_STEP > NODE_W horizontally, ROW_STEP > NODE_H within).
+  // 7. PLACE NODES. Sort by time, greedy lane-pack so NOTHING overlaps. Cards
+  //    that collide horizontally fall to the next lane (dense clusters stack →
+  //    momentum; quiet stretches stay open → proportional empty space).
+  const sorted = [...enriched].sort(
+    (a, b) => (a.months ?? minM) - (b.months ?? minM) || xForNode(a) - xForNode(b),
+  );
+  const laneRight: number[] = []; // rightmost occupied x per lane
   const positioned: PositionedNode[] = [];
   let maxRows = 1;
-  for (const col of columns) {
-    col.members.forEach((m, row) => {
-      const cx = col.cx;
-      const cy = CONTENT_TOP + NODE_H / 2 + row * ROW_STEP;
-      maxRows = Math.max(maxRows, row + 1);
-      positioned.push({
-        id: m.node.id,
-        x: cx - NODE_W / 2,
-        y: cy - NODE_H / 2,
-        cx,
-        cy,
-        chapter: col.chapter,
-        effectiveDate: m.eff,
-      });
+  for (const e of sorted) {
+    const cx = xForNode(e);
+    const left = cx - NODE_W / 2;
+    let lane = 0;
+    while (lane < laneRight.length && laneRight[lane] + LANE_HGAP > left) lane++;
+    laneRight[lane] = cx + NODE_W / 2;
+    maxRows = Math.max(maxRows, lane + 1);
+    const cy = CONTENT_TOP + NODE_H / 2 + lane * ROW_STEP;
+    positioned.push({
+      id: e.node.id,
+      x: cx - NODE_W / 2,
+      y: cy - NODE_H / 2,
+      cx,
+      cy,
+      chapter: e.chapter,
+      effectiveDate: e.eff,
     });
   }
 
-  // 8. Canvas size. Width grows to fit the lattice (size is embraced, not
-  //    compressed); height is the tallest column + axis band, with a floor.
-  const lastCx = columns.length ? Math.max(...columns.map((c) => c.cx)) : EDGE_PAD;
-  const width = lastCx + NODE_W / 2 + EDGE_PAD;
+  // 8. Canvas size. Width grows to fit real time (size embraced). Height = the
+  //    tallest lane stack + axis band, floored.
+  const lastCx = positioned.length ? Math.max(...positioned.map((p) => p.cx)) : EDGE_PAD;
+  const todayX = mode === "ordinal"
+    ? interpTodayX(positioned, enriched, todayM, lastCx)
+    : xForMonth(todayM);
+  const width = Math.max(lastCx, todayX) + NODE_W / 2 + EDGE_PAD;
   const contentH = Math.max(MIN_CONTENT_H, CONTENT_TOP + maxRows * ROW_STEP);
   const height = contentH + AXIS_RESERVE;
-  const axisY = contentH + 40; // axis line sits in the reserved bottom band
+  const axisY = contentH + 40;
 
-  // 9. Zone bands: each chapter wraps its own contiguous run of date columns
-  //    (grouping background, preserved per the board's structure). In ordinal
-  //    mode chapters abut perfectly; in calendar mode they span member extents.
-  const zones: ZoneBand[] = CHAPTERS.map((c, i) => {
-    const cols = columns.filter((col) => col.chapter === i);
+  // 9. Zone bands: each chapter spans the real-time extent of its members
+  //    (grouping background, preserved). Temporal spans can overlap → stagger
+  //    the header label into tiers so they never collide.
+  const posByChapter = CHAPTERS.map((_, ci) => positioned.filter((p) => p.chapter === ci));
+  const rawZones = CHAPTERS.map((c, i) => {
+    const ps = posByChapter[i];
     const r = ranges[i];
     const startLbl = monthToLabel(r.start);
     const endLbl = monthToLabel(r.end);
@@ -350,33 +332,41 @@ export function computeTimelineLayout(
           : `${startLbl} – ${endLbl}`;
     let left: number;
     let zw: number;
-    if (cols.length === 0) {
-      left = EDGE_PAD;
+    if (ps.length === 0) {
+      left = EDGE_PAD + i * COL_STEP;
       zw = COL_STEP;
     } else {
-      const minC = Math.min(...cols.map((col) => col.cx));
-      const maxC = Math.max(...cols.map((col) => col.cx));
-      left = minC - COL_STEP / 2;
-      zw = maxC - minC + COL_STEP;
+      left = Math.min(...ps.map((p) => p.x)) - SUBGROUP_PAD;
+      zw = Math.max(...ps.map((p) => p.x + NODE_W)) + SUBGROUP_PAD - left;
     }
+    return { c, i, left, zw, rangeLabel };
+  });
+  // Greedy tier assignment so overlapping header bands stack instead of colliding.
+  const tierRight: number[] = [];
+  const zones: ZoneBand[] = rawZones.map((z) => {
+    let tier = 0;
+    while (tier < tierRight.length && tierRight[tier] > z.left) tier++;
+    tierRight[tier] = z.left + z.zw;
     return {
-      key: c.key,
-      index: i,
-      kicker: c.kicker,
-      title: c.title,
-      rangeLabel,
-      x: left,
-      width: zw,
+      key: z.c.key,
+      index: z.i,
+      kicker: z.c.kicker,
+      title: z.c.title,
+      rangeLabel: z.rangeLabel,
+      x: z.left,
+      width: z.zw,
       height,
+      headerTier: tier,
     };
   });
 
   // 10. Sub-containers: a thread cluster (≥2 nodes) inside a zone. Skip the
-  //     cluster that spans the WHOLE zone (the column already IS that region),
-  //     so only genuine sub-groupings get the tinted box (spec §2).
+  //     cluster that spans the WHOLE zone, so only genuine sub-groupings get the
+  //     tinted box (spec §2).
   const subgroups: SubContainer[] = [];
   const posById = new Map(positioned.map((p) => [p.id, p]));
-  members.forEach((ms, ci) => {
+  CHAPTERS.forEach((_, ci) => {
+    const ms = enriched.filter((e) => e.chapter === ci);
     const byThread = new Map<string, PositionedNode[]>();
     for (const m of ms) {
       const t = m.node.thread;
@@ -404,43 +394,32 @@ export function computeTimelineLayout(
     }
   });
 
-  // 11. Axis: one EVENLY SPACED tick per dated column (the board ask). Year is
-  //     shown when it changes (and on the first tick). Iterate in column order.
+  // 11. Axis ticks. Calendar: one tick per whole month across the global span,
+  //     EVENLY spaced by real time (PX_PER_MONTH) → the scale is legible and a
+  //     2-month gap is visibly 2× a 1-month gap. Ordinal: one tick per column.
   const ticks: AxisTick[] = [];
-  let prevYear: number | null = null;
-  for (const col of columns) {
-    if (col.date === null) continue;
-    const { label, year } = fmtDate(col.date);
-    ticks.push({ x: col.cx, label, sub: prevYear === null || year !== prevYear ? String(year) : null });
-    prevYear = year;
-  }
-
-  // 12. Today marker. Ordinal: interpolate between the dated columns straddling
-  //     today so the marker reads in-time on the even lattice. Calendar: linear.
-  const todayM = Math.max(0, monthsSinceEpoch(today));
-  let todayX: number;
-  if (mode === "calendar") {
-    const dated = columns.filter((c) => c.months !== null);
-    const minM = dated.length ? Math.min(...dated.map((c) => c.months!)) : 0;
-    todayX = EDGE_PAD + COL_STEP / 2 + (todayM - minM) * PX_PER_MONTH;
+  if (mode === "ordinal") {
+    const seen = new Set<number>();
+    for (const e of [...enriched].filter((e) => e.eff).sort((a, b) => (a.months! - b.months!))) {
+      const x = Math.round(xForNode(e));
+      if (seen.has(x)) continue;
+      seen.add(x);
+      const { label, year } = fmtDate(e.eff!);
+      ticks.push({ x, label, sub: String(year) });
+    }
   } else {
-    const dated = columns
-      .filter((c) => c.months !== null)
-      .sort((a, b) => a.months! - b.months!);
-    if (dated.length === 0) {
-      todayX = width / 2;
-    } else if (todayM <= dated[0].months!) {
-      todayX = dated[0].cx;
-    } else if (todayM >= dated[dated.length - 1].months!) {
-      // just past the last dated column → into the projected tail, half a slot.
-      todayX = dated[dated.length - 1].cx + COL_STEP / 2;
-    } else {
-      let hi = dated.findIndex((c) => c.months! >= todayM);
-      if (hi < 1) hi = 1;
-      const lo = dated[hi - 1];
-      const up = dated[hi];
-      const t = (todayM - lo.months!) / (up.months! - lo.months! || 1);
-      todayX = lo.cx + t * (up.cx - lo.cx);
+    const firstM = Math.floor(Math.min(minM, todayM));
+    const lastM = Math.ceil(Math.max(maxM, todayM));
+    let prevYear: number | null = null;
+    for (let m = firstM; m <= lastM; m++) {
+      const idx = ((m % 12) + 12) % 12;
+      const year = 2026 + Math.floor(m / 12);
+      ticks.push({
+        x: xForMonth(m),
+        label: MONTHS[idx],
+        sub: idx === 0 || prevYear === null ? String(year) : null,
+      });
+      prevYear = year;
     }
   }
 
@@ -452,4 +431,35 @@ export function computeTimelineLayout(
     width,
     height,
   };
+}
+
+/** "2026-04-01" → { label: "Apr 1", year: 2026 } (parsed without TZ drift). */
+function fmtDate(iso: string): { label: string; year: number } {
+  const [y, m, d] = iso.split("-").map((s) => parseInt(s, 10));
+  const mi = Number.isFinite(m) ? ((m - 1) % 12 + 12) % 12 : 0;
+  const day = Number.isFinite(d) ? d : 1;
+  return { label: `${MONTHS[mi]} ${day}`, year: Number.isFinite(y) ? y : 2026 };
+}
+
+/** Ordinal-mode Today: interpolate between the dated columns straddling today. */
+function interpTodayX(
+  positioned: PositionedNode[],
+  enriched: EnrichedNode[],
+  todayM: number,
+  lastCx: number,
+): number {
+  const monthsById = new Map(enriched.map((e) => [e.node.id, e.months]));
+  const dated = positioned
+    .map((p) => ({ cx: p.cx, m: monthsById.get(p.id) ?? null }))
+    .filter((d): d is { cx: number; m: number } => d.m !== null)
+    .sort((a, b) => a.m - b.m);
+  if (dated.length === 0) return lastCx / 2;
+  if (todayM <= dated[0].m) return dated[0].cx;
+  if (todayM >= dated[dated.length - 1].m) return dated[dated.length - 1].cx + COL_STEP / 2;
+  let hi = dated.findIndex((d) => d.m >= todayM);
+  if (hi < 1) hi = 1;
+  const lo = dated[hi - 1];
+  const up = dated[hi];
+  const t = (todayM - lo.m) / (up.m - lo.m || 1);
+  return lo.cx + t * (up.cx - lo.cx);
 }

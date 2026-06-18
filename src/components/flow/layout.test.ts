@@ -49,21 +49,27 @@ describe("computeTimelineLayout", () => {
     expect(layout.axis.todayX).toBeLessThan(layout.axis.xEnd);
   });
 
-  it("spaces date columns EVENLY (PLE-133 board directive)", () => {
-    // Every distinct date tick is the same uniform step from the next — a
-    // regular lattice, no compressed or variable gaps (continuity in spacing).
-    const xs = [...new Set(layout.axis.ticks.map((t) => Math.round(t.x)))].sort(
-      (a, b) => a - b,
-    );
+  it("uses a TRUE CALENDAR SCALE by default — equal px per unit time (PLE-133)", () => {
+    // Lawrence's directive: the axis is proportional to real time, so the whole
+    // month-tick grid is evenly spaced (a 2-month gap reads 2× a 1-month gap).
+    const xs = layout.axis.ticks.map((t) => Math.round(t.x));
     const gaps = xs.slice(1).map((x, i) => x - xs[i]);
-    // Uniform lattice: every gap is the base column step (or an exact multiple,
-    // if a truly-undated node ever consumes an unticked slot between dates).
-    const base = Math.min(...gaps);
-    for (const g of gaps) expect(g % base).toBe(0);
+    const base = gaps[0];
+    for (const g of gaps) expect(Math.abs(g - base)).toBeLessThanOrEqual(1);
+    expect(base).toBeGreaterThan(0);
   });
 
-  it("stacks same-date nodes on a uniform, aligned row grid (PLE-133)", () => {
-    // All node rows fall on the same vertical grid across every column.
+  it("places nodes at their TRUE temporal x (proportional, not equidistant)", () => {
+    // A node ~2 months after the origin sits ~2× as far right as one ~1 month
+    // after — proportionality, the thing equal-width columns would destroy.
+    const formed = layout.nodes.find((n) => n.id === "n-pleet-formed")!;
+    const printing = layout.nodes.find((n) => n.id === "n-oswego-printing")!;
+    // span between two real events is driven by real elapsed time, so the gap is
+    // large (months apart) rather than a single fixed column step.
+    expect(printing.cx - formed.cx).toBeGreaterThan(400);
+  });
+
+  it("keeps lanes on a uniform vertical grid, nothing overlapping (PLE-133)", () => {
     const cys = [...new Set(layout.nodes.map((n) => Math.round(n.cy)))].sort(
       (a, b) => a - b,
     );
@@ -73,6 +79,16 @@ describe("computeTimelineLayout", () => {
         expect((cys[i] - cys[0]) % step).toBe(0);
       }
     }
+  });
+
+  it("ordinal mode (the rejected reading, behind the flag) still builds even columns", () => {
+    const ord = computeTimelineLayout(NODES, EDGES, TODAY, "ordinal");
+    const xs = [...new Set(ord.axis.ticks.map((t) => Math.round(t.x)))].sort(
+      (a, b) => a - b,
+    );
+    const gaps = xs.slice(1).map((x, i) => x - xs[i]);
+    const base = Math.min(...gaps);
+    for (const g of gaps) expect(g % base).toBe(0); // equal-width columns
   });
 
   it("buckets an undated node by its earliest dated neighbor", () => {

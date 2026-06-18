@@ -58,10 +58,11 @@ const HUB_MIN_INDEGREE = 3;
 // PLE-97: the ≤760px breakpoint, mirrored exactly in flow.css's media query.
 const MOBILE_BP = 760;
 const MOBILE_MOUNT_ZOOM = 0.9;
-// PLE-133: the even lattice is intentionally WIDE (board: "big TV"). Fitting the
-// whole thing on mount renders nodes unreadable, so we mount at a readable zoom
-// anchored on the focal node and let pan + the Fit button reveal the full lattice.
-const DESKTOP_MOUNT_ZOOM = 0.62;
+// PLE-133: the proportional time axis is intentionally WIDE (board: "big TV" +
+// "fit-to-screen so the wide axis reads cleanly"). Desktop mounts fit-to-screen
+// so the whole real-time scale (clustering = momentum, gaps = quiet) is visible;
+// pan/zoom + the Fit button read detail at TV scale.
+const ZONE_TIER_H = 26; // vertical offset per chapter-header tier (overlap stagger)
 
 // ── Z-plane depth (PLE-115 §10) ──────────────────────────────────────────────
 // §10.2: which semantic variable maps to Z → story `thread`. Threads cluster
@@ -270,7 +271,7 @@ function ZoneHeaderLayer({ zones }: { zones: ZoneBand[] }) {
         <div
           key={z.key}
           className="flow-zone__head flow-zone__head--fixed"
-          style={{ left: z.x, top: 0, width: z.width, right: "auto" }}
+          style={{ left: z.x, top: z.headerTier * ZONE_TIER_H, width: z.width, right: "auto" }}
         >
           <span className="flow-zone__kicker">{z.kicker}</span>
           <span className="flow-zone__title">{z.title}</span>
@@ -640,19 +641,12 @@ function FlowCanvasInner({
     (instance: ReactFlowInstance) => {
       if (didInit.current) return;
       didInit.current = true;
-      const wantFit =
-        typeof window !== "undefined" &&
-        new URLSearchParams(window.location.search).has("fit");
       const anchor = posById.get(FOCAL_ID);
-      if (wantFit) {
-        instance.fitView({ padding: 0.08 });
-      } else if (anchor) {
-        instance.setCenter(anchor.cx, anchor.cy, {
-          zoom: mobile ? MOBILE_MOUNT_ZOOM : DESKTOP_MOUNT_ZOOM,
-          duration: 0,
-        });
+      if (mobile && anchor) {
+        instance.setCenter(anchor.cx, anchor.cy, { zoom: MOBILE_MOUNT_ZOOM, duration: 0 });
       } else {
-        instance.fitView({ padding: 0.1 });
+        // Desktop: fit the whole proportional time axis (PLE-133 — show scale).
+        instance.fitView({ padding: 0.08 });
       }
     },
     [mobile, posById],
