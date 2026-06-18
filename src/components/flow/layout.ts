@@ -1,54 +1,47 @@
 // =============================================================================
-// Flow-graph layout (PLE-92). Deterministic, non-overlapping placement for the
-// React Flow node-graph. Lawrence's hard constraint is "NOTHING stacked on top
-// of something else" — so layout is by construction: every node lands in one
-// chronological STAGE column and gets its own vertical slot. No two nodes can
-// share a cell, so nothing can overlap. Relationship edges weave between columns
-// as labeled arrows — a flow chart, not a dense timeline rail.
+// Flow-graph layout (PLE-92, v3). Board feedback: NOT a rigid stacked-column
+// timeline rail. Lawrence wants a Sankey / Big-Bang shape — a small origin that
+// EXPANDS as the story evolves and converges, with EDGE-CROSSING MINIMIZATION,
+// time reading left→right by causality (not a literal axis).
+//
+// So we use dagre (layered graph layout): its ordering pass minimizes crossings,
+// and an invisible per-period "time backbone" pins ranks so the graph still
+// flows Jan → now → future left→right. Real relationship edges are weighted
+// ABOVE the backbone so the layout straightens the story, not the scaffolding.
+// dagre also guarantees non-overlap (Lawrence's original hard constraint holds).
 // =============================================================================
 
+import dagre from "dagre";
 import type { Edge, TimelineNode } from "../../data/types";
-import { nodeAxisDate } from "../../lib/temporal";
-import { STAGES, stageForDate } from "./flowTheme";
+import { nodeAxisDate, monthsSinceEpoch } from "../../lib/temporal";
 
 export const NODE_W = 236;
 export const NODE_H = 78;
-const ROW_PITCH = NODE_H + 28; // vertical distance between stacked nodes
-const SUBCOL_PITCH = NODE_W + 48; // horizontal distance between sub-columns
-const STAGE_GAP = 96; // extra horizontal gap between stages
-const MAX_ROWS = 7; // a stage wider than this wraps into balanced sub-columns
+
+const ANCHOR = "__t__"; // invisible time-backbone node id prefix
 
 export interface PositionedNode {
   id: string;
+  /** Top-left (React Flow coords). */
   x: number;
   y: number;
-  /** Stage column index. */
-  stage: number;
+  /** Period bucket index (months since Jan 2026) — for the time ribbon. */
+  bucket: number;
   effectiveDate: string | null;
-}
-
-export interface ColumnMeta {
-  stage: number;
-  label: string;
-  blurb: string;
-  /** Left x of the column's node band. */
-  x: number;
-  count: number;
-  /** Top y of the header (above the first node). */
-  headerY: number;
 }
 
 export interface FlowLayout {
   nodes: PositionedNode[];
-  columns: ColumnMeta[];
   width: number;
   height: number;
+  minBucket: number;
+  maxBucket: number;
 }
 
 /**
- * Effective date used to bucket a node into a stage column:
- *   its own axis date, else the EARLIEST axis date among its edge neighbors
- *   (so an undated person sits where they enter the story), else null.
+ * Effective date used to place a node in time: its own axis date, else the
+ * EARLIEST axis date among its edge neighbors (so an undated person flows in
+ * where they enter the story), else null.
  */
 export function effectiveDate(
   node: TimelineNode,
@@ -69,81 +62,98 @@ export function effectiveDate(
   return neighborDates.sort()[0];
 }
 
-const HEADER_GAP = 56; // space between the column header and its first node
+/** Month bucket (Jan 2026 = 0). Undated-and-isolated nodes flow into "now". */
+function bucketFor(eff: string | null, todayBucket: number): number {
+  if (!eff) return todayBucket;
+  return Math.max(0, Math.floor(monthsSinceEpoch(eff)));
+}
 
-/** Compute a non-overlapping, left→right, chronological flow layout. */
+/**
+ * Compute a crossing-minimized, left→right, expanding layout via dagre.
+ * Synchronous (dagre is sync) so it stays cheap and unit-testable.
+ */
 export function computeFlowLayout(
   nodes: TimelineNode[],
   edges: Edge[],
+  today: string,
 ): FlowLayout {
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+  const todayBucket = Math.max(0, Math.floor(monthsSinceEpoch(today)));
 
-  // 1. Bucket every node into exactly one stage column.
-  const buckets: TimelineNode[][] = STAGES.map(() => []);
-  const effDates = new Map<string, string | null>();
+  // 1. Time bucket per node. Nodes with a date (own or via a dated neighbor)
+  //    land in that month. "Floating" nodes (undated AND unconnected) carry no
+  //    time signal, so we spread them across the populated months — they fill
+  //    the expanding cloud instead of piling into one tall column.
+  const effById = new Map<string, string | null>();
+  const bucketById = new Map<string, number>();
+  const floating: TimelineNode[] = [];
   for (const n of nodes) {
     const eff = effectiveDate(n, edges, nodeMap);
-    effDates.set(n.id, eff);
-    buckets[stageForDate(eff).index].push(n);
+    effById.set(n.id, eff);
+    if (eff === null) floating.push(n);
+    else bucketById.set(n.id, bucketFor(eff, todayBucket));
+  }
+  const datedBuckets = [...new Set(bucketById.values())].sort((a, b) => a - b);
+  const spread = datedBuckets.length > 0 ? datedBuckets : [0];
+  floating.forEach((n, i) => bucketById.set(n.id, spread[i % spread.length]));
+
+  // 2. Group nodes into period layers (left → right).
+  const sortedBuckets = [...new Set(bucketById.values())].sort((a, b) => a - b);
+  const byBucket = new Map<number, string[]>();
+  for (const b of sortedBuckets) byBucket.set(b, []);
+  for (const n of nodes) byBucket.get(bucketById.get(n.id)!)!.push(n.id);
+
+  const minBucket = sortedBuckets[0] ?? 0;
+  const maxBucket = sortedBuckets[sortedBuckets.length - 1] ?? 0;
+
+  const g = new dagre.graphlib.Graph({ multigraph: true });
+  g.setGraph({
+    rankdir: "LR",
+    nodesep: 18,
+    ranksep: 58,
+    edgesep: 12,
+    marginx: 44,
+    marginy: 44,
+    ranker: "network-simplex",
+  });
+  g.setDefaultEdgeLabel(() => ({}));
+
+  for (const n of nodes) g.setNode(n.id, { width: NODE_W, height: NODE_H });
+
+  // 3. Invisible branching backbone — the Big-Bang scaffold. An origin fans out
+  //    into the first period; each later period's nodes hang off the previous
+  //    period's nodes (round-robin), so the graph EXPANDS from a point and ranks
+  //    track time left→right. Backbone edges are NOT drawn — only real edges are.
+  g.setNode(ANCHOR + "origin", { width: NODE_W, height: NODE_H });
+  let prevLayer: string[] = [ANCHOR + "origin"];
+  for (const b of sortedBuckets) {
+    const layer = byBucket.get(b)!;
+    layer.forEach((id, idx) => {
+      g.setEdge(prevLayer[idx % prevLayer.length], id, { weight: 1, minlen: 1 }, "bb");
+    });
+    prevLayer = layer.length > 0 ? layer : prevLayer;
   }
 
-  // 2. Sort within a column by date then title for a stable, readable stack.
-  for (const b of buckets) {
-    b.sort((a, c) => {
-      const da = effDates.get(a.id) ?? "";
-      const dc = effDates.get(c.id) ?? "";
-      if (da !== dc) return da < dc ? -1 : 1;
-      return a.title.localeCompare(c.title);
-    });
+  // 4. Real relationship edges, weighted ABOVE the backbone so dagre straightens
+  //    the actual story and minimizes crossings around it.
+  for (const e of edges) {
+    if (nodeMap.has(e.from) && nodeMap.has(e.to)) {
+      g.setEdge(e.from, e.to, { weight: 6, minlen: 1 }, "rel");
+    }
   }
 
-  // 3. Place. A stage taller than MAX_ROWS wraps into balanced sub-columns so no
-  //    column towers over the rest. Every node still owns one slot (a distinct
-  //    sub-column + row), so overlap is impossible by construction.
-  const rowsPerCol = buckets.map((b) =>
-    Math.max(1, Math.ceil(b.length / Math.max(1, Math.ceil(b.length / MAX_ROWS)))),
-  );
-  const globalMaxRows = Math.max(1, ...rowsPerCol);
-  const headerY = -((globalMaxRows - 1) * ROW_PITCH) / 2 - HEADER_GAP;
+  dagre.layout(g);
 
-  const positioned: PositionedNode[] = [];
-  const columns: ColumnMeta[] = [];
-  let stageX = 0;
-
-  buckets.forEach((bucket, stage) => {
-    const perCol = rowsPerCol[stage];
-    const subCols = Math.max(1, Math.ceil(bucket.length / perCol));
-
-    bucket.forEach((n, idx) => {
-      const sub = Math.floor(idx / perCol);
-      const row = idx % perCol;
-      // How many nodes actually land in THIS sub-column (last one may be short).
-      const inThisSub = Math.min(perCol, bucket.length - sub * perCol);
-      const startY = -((inThisSub - 1) * ROW_PITCH) / 2;
-      positioned.push({
-        id: n.id,
-        x: stageX + sub * SUBCOL_PITCH,
-        y: startY + row * ROW_PITCH,
-        stage,
-        effectiveDate: effDates.get(n.id) ?? null,
-      });
-    });
-
-    const s = STAGES[stage];
-    columns.push({
-      stage,
-      label: s.label,
-      blurb: s.blurb,
-      x: stageX,
-      count: bucket.length,
-      headerY,
-    });
-
-    stageX += subCols * SUBCOL_PITCH + STAGE_GAP;
+  let maxX = 0;
+  let maxY = 0;
+  const positioned: PositionedNode[] = nodes.map((n) => {
+    const d = g.node(n.id);
+    const x = d.x - NODE_W / 2;
+    const y = d.y - NODE_H / 2;
+    maxX = Math.max(maxX, x + NODE_W);
+    maxY = Math.max(maxY, y + NODE_H);
+    return { id: n.id, x, y, bucket: bucketById.get(n.id)!, effectiveDate: effById.get(n.id) ?? null };
   });
 
-  const width = stageX;
-  const height = (globalMaxRows - 1) * ROW_PITCH + NODE_H;
-
-  return { nodes: positioned, columns, width, height };
+  return { nodes: positioned, width: maxX, height: maxY, minBucket, maxBucket };
 }

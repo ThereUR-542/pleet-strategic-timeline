@@ -1,9 +1,9 @@
 // =============================================================================
-// FlowCanvas (PLE-92) — the node-graph that replaces the rejected glassmorphic
-// timeline. React Flow + a deterministic chronological stage layout (see
-// layout.ts). Solid non-overlapping nodes, labeled arrow edges, pan/zoom, a
-// header + legend panel, and click-to-open detail in a DOCKED side panel.
-// Modeled on the reference Lawrence cited (https://zoho-map.vercel.app/).
+// FlowCanvas (PLE-92, v3) — the node-graph that replaces the rejected
+// glassmorphic timeline. React Flow + a dagre crossing-minimized layered layout
+// (see layout.ts): a small origin (Jan) that EXPANDS as the story evolves and
+// converges, time reading left→right by causality — the Sankey / Big-Bang shape
+// Lawrence asked for. Solid non-overlapping nodes, labeled arrow edges, pan/zoom.
 // =============================================================================
 
 import { useCallback, useEffect, useMemo } from "react";
@@ -20,13 +20,12 @@ import {
   useReactFlow,
   type Node,
   type Edge as RFEdge,
-  type NodeProps,
   type NodeMouseHandler,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { TimelineData } from "../../data/types";
 import { temporalStateFor } from "../../lib/temporal";
-import { computeFlowLayout, NODE_W } from "./layout";
+import { computeFlowLayout, NODE_W, NODE_H } from "./layout";
 import { StageNode, type StageNodeData } from "./StageNode";
 import {
   NODE_COLOR,
@@ -37,19 +36,7 @@ import {
 
 const FOCAL_ID = "n-mayor-nichols";
 
-// ── Stage-column header node (non-interactive, sits above each column) ────────
-function StageHeaderNode({ data }: NodeProps) {
-  const d = data as { label: string; blurb: string };
-  return (
-    <div className="stage-header">
-      <span className="stage-header__label">{d.label}</span>
-      <span className="stage-header__blurb">{d.blurb}</span>
-      <span className="stage-header__rule" aria-hidden="true" />
-    </div>
-  );
-}
-
-const NODE_TYPES = { stage: StageNode, stageHeader: StageHeaderNode };
+const NODE_TYPES = { stage: StageNode };
 
 interface Props {
   data: TimelineData;
@@ -76,7 +63,10 @@ function FlowCanvasInner({
 }: Props) {
   const { setCenter, fitView } = useReactFlow();
 
-  const layout = useMemo(() => computeFlowLayout(data.nodes, data.edges), [data]);
+  const layout = useMemo(
+    () => computeFlowLayout(data.nodes, data.edges, today),
+    [data, today],
+  );
   const nodeById = useMemo(
     () => new Map(data.nodes.map((n) => [n.id, n])),
     [data.nodes],
@@ -87,24 +77,10 @@ function FlowCanvasInner({
   );
 
   const rfNodes: Node[] = useMemo(() => {
-    const headers: Node[] = layout.columns
-      .filter((c) => c.count > 0)
-      .map((c) => ({
-        id: `stage-${c.stage}`,
-        type: "stageHeader",
-        position: { x: c.x, y: c.headerY },
-        data: { label: c.label, blurb: c.blurb },
-        draggable: false,
-        selectable: false,
-        connectable: false,
-        focusable: false,
-        width: NODE_W,
-      }));
-
-    const content: Node[] = layout.nodes.map((p) => {
+    return layout.nodes.map((p) => {
       const n = nodeById.get(p.id)!;
       const dimmed = matchedNodeIds != null && !matchedNodeIds.has(p.id);
-      const data: StageNodeData = {
+      const nodeData: StageNodeData = {
         title: n.title,
         type: n.type,
         thread: n.thread,
@@ -119,7 +95,7 @@ function FlowCanvasInner({
         id: p.id,
         type: "stage",
         position: { x: p.x, y: p.y },
-        data: data as unknown as Record<string, unknown>,
+        data: nodeData as unknown as Record<string, unknown>,
         selected: p.id === selectedId,
         draggable: false,
         connectable: false,
@@ -127,8 +103,6 @@ function FlowCanvasInner({
         targetPosition: Position.Left,
       };
     });
-
-    return [...headers, ...content];
   }, [layout, nodeById, matchedNodeIds, today, selectedId]);
 
   const rfEdges: RFEdge[] = useMemo(() => {
@@ -178,7 +152,7 @@ function FlowCanvasInner({
     if (!focusNodeId) return;
     const p = posById.get(focusNodeId);
     if (!p) return;
-    setCenter(p.x + NODE_W / 2, p.y + 39, { zoom: 1.1, duration: 600 });
+    setCenter(p.x + NODE_W / 2, p.y + NODE_H / 2, { zoom: 1.1, duration: 600 });
   }, [focusNodeId, posById, setCenter]);
 
   return (
@@ -202,11 +176,7 @@ function FlowCanvasInner({
       <MiniMap
         pannable
         zoomable
-        nodeColor={(n) =>
-          n.type === "stage"
-            ? NODE_COLOR[(n.data as StageNodeData).type] ?? "#475569"
-            : "transparent"
-        }
+        nodeColor={(n) => NODE_COLOR[(n.data as StageNodeData).type] ?? "#475569"}
         nodeStrokeWidth={0}
         maskColor="rgba(8,10,15,0.72)"
         className="flow-minimap"
@@ -216,8 +186,18 @@ function FlowCanvasInner({
         <Panel position="top-left" className="flow-titlecard">
           <h1 className="flow-titlecard__title">Pleet LLC · Strategic Flow</h1>
           <p className="flow-titlecard__sub">
-            Intake → downstream · read-only · click any node for detail
+            How the venture grew — origin → expansion → convergence → future
           </p>
+        </Panel>
+      )}
+
+      {!compact && (
+        <Panel position="bottom-center" className="flow-timeribbon">
+          <span>Jan 2026</span>
+          <span className="flow-timeribbon__arrow" aria-hidden="true" />
+          <span className="flow-timeribbon__now">Today · Jun</span>
+          <span className="flow-timeribbon__arrow" aria-hidden="true" />
+          <span>Projected →</span>
         </Panel>
       )}
 
