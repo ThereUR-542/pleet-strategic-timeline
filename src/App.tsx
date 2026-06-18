@@ -128,21 +128,44 @@ function TimelineApp({ data, lanes }: { data: TimelineData; lanes: Lane[] }) {
         edges={data.edges}
         stepIndex={presenterStep}
         stepIds={presenterStepIds}
-        onStepChange={setPresenterStep}
+        onStepChange={(idx) => { setSelectedId(null); setPresenterStep(idx); }}
         onExit={exitPresenter}
         orientation="horizontal"
+        detailOpen={selectedNode != null}
+        onShowDetail={(id) => setSelectedId(id)}
       >
         <div className="flow-canvas-host" style={{ height: "100%" }}>
           <FlowCanvas
             data={data}
             today={today}
-            selectedId={presenterNodeId}
+            selectedId={selectedId ?? presenterNodeId}
             focusNodeId={presenterNodeId}
             matchedNodeIds={null}
-            onNodeSelect={() => {}}
+            onNodeSelect={handleNodeSelect}
             compact
           />
         </div>
+        {/* PLE-146: the node detail modal (info + files + hyperlinks) must be
+            reachable while presenting. We reuse the timeline DetailPanel verbatim
+            for full data parity; presenter-scoped CSS floats it above the slide
+            chrome (z 120 > nav 110) with a dismiss scrim. */}
+        {selectedNode && (
+          <>
+            <div
+              className="detail-scrim presenter-detail-scrim"
+              aria-hidden="true"
+              onClick={() => setSelectedId(null)}
+            />
+            <DetailPanel
+              node={selectedNode}
+              citations={data.citations}
+              edges={data.edges}
+              nodes={data.nodes}
+              today={today}
+              onClose={() => setSelectedId(null)}
+            />
+          </>
+        )}
       </PresenterMode>
     );
   }

@@ -10,6 +10,10 @@ interface Props {
   onStepChange: (idx: number) => void;
   onExit: () => void;
   orientation: "horizontal" | "vertical";
+  /** PLE-146: whether the node detail modal is currently open. */
+  detailOpen: boolean;
+  /** PLE-146: open the detail modal (info + files + links) for a node id. */
+  onShowDetail: (id: string) => void;
   children: React.ReactNode;
 }
 
@@ -49,6 +53,8 @@ export function PresenterMode({
   onStepChange,
   onExit,
   orientation,
+  detailOpen,
+  onShowDetail,
   children,
 }: Props) {
   const prefersReducedMotion = useRef(
@@ -68,16 +74,21 @@ export function PresenterMode({
     if (stepIndex > 0) onStepChange(stepIndex - 1);
   }, [stepIndex, onStepChange]);
 
-  // Keyboard handler: ←/→ to navigate, Escape to exit, F to fullscreen toggle
+  // Keyboard handler: ←/→ navigate, I/Enter open detail, Escape close/exit.
+  // When the detail modal is open, Escape is handled by DetailPanel itself
+  // (close-first); we must NOT also exit the presentation (PLE-146).
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") { onExit(); return; }
+      if (e.key === "Escape") { if (!detailOpen) onExit(); return; }
+      if ((e.key === "i" || e.key === "I" || e.key === "Enter") && currentNode && !detailOpen) {
+        e.preventDefault(); onShowDetail(currentNode.id); return;
+      }
       if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") { e.preventDefault(); goNext(); }
       if (e.key === "ArrowLeft"  || e.key === "PageUp")  { e.preventDefault(); goPrev(); }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [goNext, goPrev, onExit]);
+  }, [goNext, goPrev, onExit, detailOpen, onShowDetail, currentNode]);
 
   // Fullscreen on mount
   useEffect(() => {
@@ -115,6 +126,7 @@ export function PresenterMode({
           </span>
           <span className="presenter-node-title">{currentNode.title}</span>
           <span className="presenter-node-summary">{currentNode.summary}</span>
+          <span className="presenter-node-hint">Click node · ⓘ Details for files &amp; links</span>
         </div>
       )}
 
@@ -144,6 +156,18 @@ export function PresenterMode({
         >
           ›
         </button>
+
+        {currentNode && (
+          <button
+            className="presenter-detail-btn"
+            onClick={() => onShowDetail(currentNode.id)}
+            aria-label="Show node details, files and links"
+            aria-expanded={detailOpen}
+            title="Details, files & links (I / Enter)"
+          >
+            ⓘ Details
+          </button>
+        )}
 
         <button
           className="presenter-exit-btn"

@@ -1077,6 +1077,65 @@ details[open] .legend-summary::before { transform: rotate(90deg); }
 }
 .presenter-exit-btn:hover { background: rgba(255, 100, 100, 0.18); }
 
+/* ── Presenter detail modal (PLE-146) ──────────────────────────────────────
+   Reuses the timeline DetailPanel (info + files + hyperlinks) but, on the
+   fullscreen stage, floats it as an overlay above the slide + chrome on BOTH
+   desktop and mobile (there is no docking column to grow into here). */
+.presenter-node-hint {
+  flex-basis: 100%;
+  font-size: var(--text-3xs);
+  color: var(--accent);
+  opacity: 0.85;
+  letter-spacing: 0.02em;
+}
+.presenter-detail-btn {
+  padding: var(--space-1-5) var(--space-3);
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  background: rgba(110, 168, 255, 0.12);
+  color: var(--text-0);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: background 0.12s;
+  white-space: nowrap;
+}
+.presenter-detail-btn:hover { background: rgba(110, 168, 255, 0.22); }
+
+.presenter-overlay .detail-scrim {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 118;            /* above presenter-nav (110), below the panel */
+  background: rgba(5, 6, 10, 0.55);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+.presenter-overlay .detail-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: auto;
+  z-index: 120;            /* above scrim (118) + presenter-nav (110) */
+  width: 420px;
+  max-width: 92vw;
+  flex-basis: auto;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0;
+}
+@media (max-width: 760px) {
+  .presenter-overlay .detail-panel {
+    top: auto;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: 88%;
+    border-left: none;
+    border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+  }
+}
+
 .presenter-step-ring {
   animation: presenter-pulse 1.4s ease-in-out infinite;
 }
