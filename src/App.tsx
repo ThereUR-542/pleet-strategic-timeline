@@ -20,10 +20,10 @@ import "./styles/flow.css";
 
 type ViewTab = "flow" | "summary";
 
-// ── Dev-only connection editor (PLE-137). Lazy + DEV-gated: the public prod
-// build never reaches this branch, so no repo-write surface ships to the live
-// static site. Open at /editor under `npm run dev`.
-const ConnectionEditor = lazy(() => import("./editor/ConnectionEditor"));
+// ── Dev-only visual editor (PLE-137 connections + PLE-138 nodes/lanes). Lazy +
+// DEV-gated: the public prod build never reaches this branch, so no repo-write
+// surface ships to the live static site. Open at /editor under `npm run dev`.
+const EditorShell = lazy(() => import("./editor/EditorShell"));
 function isEditorRoute() {
   return (
     import.meta.env.DEV &&
@@ -55,7 +55,7 @@ export function App() {
   if (isEditorRoute()) {
     return (
       <Suspense fallback={<DataLoadingScreen />}>
-        <ConnectionEditor />
+        <EditorShell />
       </Suspense>
     );
   }

@@ -19,7 +19,10 @@ import {
   validateFile,
   type LocatedError,
 } from "../data/schema";
-import type { TimelineData, Lane } from "../data/types";
+import type { TimelineData, Lane, TimelineNode, Edge } from "../data/types";
+
+/** The nodes.yaml meta the editor preserves but still must validate. */
+type NodesMeta = Pick<TimelineData, "anchorDate" | "demandModel" | "citations">;
 
 /**
  * Validate a candidate connections set against an already-loaded bundle, using
@@ -50,4 +53,59 @@ export function validateConnections(
     if (e instanceof TimelineDataError) return e.errors;
     throw e;
   }
+}
+
+/** Run the full loader gate over a candidate triple; return its located errors. */
+function gate(
+  meta: NodesMeta,
+  nodes: unknown,
+  lanes: unknown,
+  connections: unknown,
+): LocatedError[] {
+  try {
+    const nodesDoc = validateFile("nodes.yaml", nodesFileSchema, {
+      anchorDate: meta.anchorDate,
+      demandModel: meta.demandModel,
+      citations: meta.citations,
+      nodes,
+    });
+    const lanesDoc = validateFile("lanes.yaml", lanesFileSchema, { lanes });
+    const connectionsDoc = validateFile("connections.yaml", connectionsFileSchema, { connections });
+    assembleBundle(nodesDoc, lanesDoc, connectionsDoc);
+    return [];
+  } catch (e) {
+    if (e instanceof TimelineDataError) return e.errors;
+    throw e;
+  }
+}
+
+/**
+ * Validate an edited node set (PLE-138) against the loaded sibling lanes +
+ * connections, using the loader's own gate. Catches bad shape/enums, duplicate
+ * ids, unknown citation refs, threads with no lane — and, crucially, an UNSAFE
+ * DELETE: removing a node still referenced by a connection surfaces as a
+ * dangling-endpoint error in connections.yaml (board AC). Empty array = safe.
+ */
+export function validateNodes(
+  nodes: unknown,
+  meta: NodesMeta,
+  lanes: Lane[],
+  connections: Edge[],
+): LocatedError[] {
+  return gate(meta, nodes, lanes, connections);
+}
+
+/**
+ * Validate an edited lane registry (PLE-138) against the loaded sibling nodes +
+ * connections. Catches bad shape (non-thread id, dup), and the UNSAFE DELETE
+ * case: removing a lane a node still points to surfaces as `nodes[i].thread has
+ * no lane` (board AC). Empty array = safe to persist.
+ */
+export function validateLanes(
+  lanes: unknown,
+  meta: NodesMeta,
+  nodes: TimelineNode[],
+  connections: Edge[],
+): LocatedError[] {
+  return gate(meta, nodes, lanes, connections);
 }

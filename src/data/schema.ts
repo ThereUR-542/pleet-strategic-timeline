@@ -213,7 +213,13 @@ export function assembleBundle(
     });
   });
 
-  const laneIds = new Set(lanesDoc.lanes.map((l) => l.id));
+  // Lane ids must be unique now that the registry is board-editable (PLE-138);
+  // a `Set` alone would silently swallow a duplicate.
+  const laneIds = new Set<string>();
+  lanesDoc.lanes.forEach((l, i) => {
+    if (laneIds.has(l.id)) errors.push({ file: "lanes.yaml", field: `lanes[${i}].id`, reason: `duplicate lane id "${l.id}"` });
+    laneIds.add(l.id);
+  });
   nodesDoc.nodes.forEach((n, i) => {
     if (n.thread && !laneIds.has(n.thread)) {
       errors.push({ file: "nodes.yaml", field: `nodes[${i}].thread`, reason: `thread "${n.thread}" has no lane in lanes.yaml` });

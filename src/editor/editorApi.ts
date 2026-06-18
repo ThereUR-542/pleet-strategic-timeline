@@ -5,7 +5,7 @@
 // has no such endpoint (and no editor route), by design.
 // =============================================================================
 
-import type { Edge } from "../data/types";
+import type { Edge, Lane, TimelineNode } from "../data/types";
 import type { LocatedError } from "../data/schema";
 
 export interface SaveResult {
@@ -17,14 +17,14 @@ export interface SaveResult {
   count?: number;
 }
 
-/** POST the edited connections; the server validates + writes connections.yaml. */
-export async function saveConnections(connections: Edge[]): Promise<SaveResult> {
+/** POST a JSON payload to a dev write endpoint; normalise the SaveResult shape. */
+async function post(path: string, payload: unknown): Promise<SaveResult> {
   let res: Response;
   try {
-    res = await fetch("/__editor/connections", {
+    res = await fetch(path, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ connections }),
+      body: JSON.stringify(payload),
     });
   } catch (e) {
     return {
@@ -44,4 +44,23 @@ export async function saveConnections(connections: Edge[]): Promise<SaveResult> 
     message: body.message,
     count: body.count,
   };
+}
+
+/** POST the edited connections; the server validates + writes connections.yaml. */
+export function saveConnections(connections: Edge[]): Promise<SaveResult> {
+  return post("/__editor/connections", { connections });
+}
+
+/**
+ * POST the edited nodes; the server preserves on-disk meta (anchorDate/
+ * demandModel/citations) + lanes/connections, re-runs the loader gate, and only
+ * then writes nodes.yaml (PLE-138).
+ */
+export function saveNodes(nodes: TimelineNode[]): Promise<SaveResult> {
+  return post("/__editor/nodes", { nodes });
+}
+
+/** POST the edited lane registry; the server validates + writes lanes.yaml (PLE-138). */
+export function saveLanes(lanes: Lane[]): Promise<SaveResult> {
+  return post("/__editor/lanes", { lanes });
 }
