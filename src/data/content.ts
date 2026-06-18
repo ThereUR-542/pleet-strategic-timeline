@@ -368,14 +368,14 @@ export const NODES: TimelineNode[] = [
   {
     id: "n-oswego-approval",
     type: "project",
-    title: "Oswego Project — Tulsa City Council final approval (TODAY anchor)",
+    title: "Oswego Project — Tulsa City Council final approval",
     date: "2026-06-17",
     dateStart: null,
     dateEnd: null,
     thread: "oswego",
     summary: "Council votes to pass — Pleet's first Tulsa printing job approved.",
     bodyMd:
-      "**Tulsa City Council** votes to pass — **final approval** of the **Oswego Project**, Pleet's first Tulsa printing job. Present-day \"Today\" anchor (§4.7). Property owned by **Timothy C. Janak, Esq.** (Pleet General Counsel).",
+      "**Tulsa City Council** votes to pass — **final approval** of the **Oswego Project**, Pleet's first Tulsa printing job, and the timeline's anchor date (§4.7). Property owned by **Timothy C. Janak, Esq.** (Pleet General Counsel).",
     demandScore: 84,
     media: [],
     citationIds: [],
