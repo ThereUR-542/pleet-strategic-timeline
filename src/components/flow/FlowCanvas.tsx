@@ -1,10 +1,16 @@
 // =============================================================================
-// FlowCanvas (PLE-92, v4) — node-graph on a real horizontal TIME AXIS. Board
-// direction: "I want to SEE time — a line with tics, each node above or below
-// its tick, to show the EVOLUTION." React Flow renders the solid icon-bearing
-// nodes + relationship edges; a ViewportPortal draws the month-ticked axis,
-// today marker, and a stem from every node down to its date — all panning and
-// zooming together. Detail opens in a docked side panel; nothing is stacked.
+// FlowCanvas (PLE-121, stage-③) — the board-accepted ZONED chapter-column
+// layout + octopus orthogonal routing, built on the PLE-92 time-axis graph.
+//
+//   - Desktop: React Flow renders the solid nodes + orthogonal (`smoothstep`)
+//     octopus edges. A ViewportPortal draws, beneath them, the 5 tinted chapter
+//     ZONE columns (with headers), thread SUB-CONTAINERS, and the PLE-92 month
+//     axis + Today marker — all panning/zooming together.
+//   - Mobile (≤760px, PLE-97): the 5 columns can't coexist, so the canvas
+//     collapses to stacked chapter BANDS with a chapter pager, horizontal node
+//     rails, and "→ hub" tentacle chips for cross-zone edges (spec §6).
+//   - Detail opens in the docked side panel (PLE-102); nothing is stacked.
+//   - Layout emits (x, y) only; the Z-plane build (PLE-115) rides on top.
 // =============================================================================
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -18,7 +24,6 @@ import {
   Panel,
   ViewportPortal,
   MarkerType,
-  Position,
   useReactFlow,
   type Node,
   type Edge as RFEdge,
@@ -28,7 +33,14 @@ import {
 import "@xyflow/react/dist/style.css";
 import type { TimelineData } from "../../data/types";
 import { temporalStateFor } from "../../lib/temporal";
-import { computeTimelineLayout, NODE_H, type TimelineAxis } from "./layout";
+import {
+  computeTimelineLayout,
+  NODE_H,
+  type FlowLayout,
+  type TimelineAxis,
+  type ZoneBand,
+  type SubContainer,
+} from "./layout";
 import { StageNode, type StageNodeData } from "./StageNode";
 import {
   NODE_COLOR,
@@ -39,12 +51,11 @@ import {
 
 const FOCAL_ID = "n-mayor-nichols";
 const NODE_TYPES = { stage: StageNode };
+/** A `concept` node with this many converging edges renders as an octopus hub. */
+const HUB_MIN_INDEGREE = 3;
 
 // PLE-97: the ≤760px breakpoint, mirrored exactly in flow.css's media query.
 const MOBILE_BP = 760;
-// Readable mount zoom on narrow viewports — a node (202px) paints at ~182px so
-// its 11.5px title is legible, instead of fitView collapsing the wide time-axis
-// into a sub-readable band. (PLE-97 §2.)
 const MOBILE_MOUNT_ZOOM = 0.9;
 
 /** True when the viewport is at/under the mobile breakpoint; updates on resize. */
@@ -82,99 +93,262 @@ interface Props {
   compact?: boolean;
 }
 
-// ── The time axis, drawn in flow coordinates so it pans/zooms with the nodes ──
+// ── Zone columns + thread sub-containers, drawn in flow coords under the nodes ─
+function ZoneLayer({
+  zones,
+  subgroups,
+}: {
+  zones: ZoneBand[];
+  subgroups: SubContainer[];
+}) {
+  return (
+    <div className="flow-zone-layer" aria-hidden="true">
+      {zones.map((z) => (
+        <div
+          key={z.key}
+          className={`flow-zone${z.index % 2 === 1 ? " flow-zone--alt" : ""}`}
+          style={{ left: z.x, top: 0, width: z.width, height: z.height }}
+        >
+          <div className="flow-zone__head">
+            <span className="flow-zone__kicker">{z.kicker}</span>
+            <span className="flow-zone__title">{z.title}</span>
+            <span className="flow-zone__range">{z.rangeLabel}</span>
+          </div>
+        </div>
+      ))}
+      {subgroups.map((s) => (
+        <div
+          key={s.id}
+          className="flow-subgroup"
+          style={{
+            left: s.x,
+            top: s.y,
+            width: s.width,
+            height: s.height,
+            ["--th" as string]: `var(--thread-${s.thread})`,
+          }}
+        >
+          <span className="flow-subgroup__tag">{s.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── The PLE-92 time axis, preserved BENEATH the zones (top-origin flow coords) ─
 function TimelineAxisLayer({
   axis,
-  half,
+  width,
+  height,
   stems,
 }: {
   axis: TimelineAxis;
-  half: number;
+  width: number;
+  height: number;
   stems: { cx: number; cy: number }[];
 }) {
-  const w = axis.xEnd - axis.xStart;
-  const h = half * 2;
-  const ox = axis.xStart;
-  const oy = half; // local y of the axis line
-
+  const oy = axis.y;
   return (
     <svg
-      width={w}
-      height={h}
+      width={width}
+      height={height}
       style={{
         position: "absolute",
-        left: axis.xStart,
-        top: -half,
+        left: 0,
+        top: 0,
         pointerEvents: "none",
         overflow: "visible",
       }}
     >
       {/* projected (future) wash, right of today */}
       <rect
-        x={axis.todayX - ox}
+        x={axis.todayX}
         y={0}
         width={Math.max(0, axis.xEnd - axis.todayX)}
-        height={h}
-        fill="rgba(110,168,255,0.035)"
+        height={height}
+        fill="rgba(110,168,255,0.025)"
       />
-      {/* stems */}
-      {stems.map((s, i) => {
-        const x = s.cx - ox;
-        const cardEdge = s.cy < 0 ? s.cy + NODE_H / 2 : s.cy - NODE_H / 2;
-        const y1 = oy + Math.min(0, cardEdge);
-        const y2 = oy + Math.max(0, cardEdge);
-        return (
-          <line
-            key={i}
-            x1={x}
-            y1={y1}
-            x2={x}
-            y2={y2}
-            stroke="rgba(255,255,255,0.12)"
-            strokeWidth={1}
-          />
-        );
-      })}
+      {/* stems: node card → its date tick on the axis */}
+      {stems.map((s, i) => (
+        <line
+          key={i}
+          x1={s.cx}
+          y1={s.cy + NODE_H / 2}
+          x2={s.cx}
+          y2={oy}
+          stroke="rgba(255,255,255,0.10)"
+          strokeWidth={1}
+        />
+      ))}
       {/* axis line */}
-      <line x1={0} y1={oy} x2={w} y2={oy} stroke="rgba(255,255,255,0.32)" strokeWidth={1.5} />
+      <line x1={0} y1={oy} x2={width} y2={oy} stroke="rgba(255,255,255,0.30)" strokeWidth={1.5} />
       {/* month ticks + labels */}
-      {axis.ticks.map((t, i) => {
-        const x = t.x - ox;
-        return (
-          <g key={i}>
-            <line x1={x} y1={oy - 6} x2={x} y2={oy + 6} stroke="rgba(255,255,255,0.4)" strokeWidth={1} />
-            <text x={x} y={oy + 22} textAnchor="middle" fontSize={12} fill="#8b94a7">
-              {t.label}
+      {axis.ticks.map((t, i) => (
+        <g key={i}>
+          <line x1={t.x} y1={oy - 5} x2={t.x} y2={oy + 5} stroke="rgba(255,255,255,0.4)" strokeWidth={1} />
+          <text x={t.x} y={oy + 20} textAnchor="middle" fontSize={11} fill="#8b94a7">
+            {t.label}
+          </text>
+          {t.sub && (
+            <text x={t.x} y={oy + 35} textAnchor="middle" fontSize={10} fill="#6b7385" fontWeight={600}>
+              {t.sub}
             </text>
-            {t.sub && (
-              <text x={x} y={oy + 38} textAnchor="middle" fontSize={11} fill="#6b7385" fontWeight={600}>
-                {t.sub}
-              </text>
-            )}
-          </g>
-        );
-      })}
+          )}
+        </g>
+      ))}
       {/* node date dots on the axis */}
       {stems.map((s, i) => (
-        <circle key={`d${i}`} cx={s.cx - ox} cy={oy} r={2.5} fill="#aeb6c6" />
+        <circle key={`d${i}`} cx={s.cx} cy={oy} r={2.5} fill="#aeb6c6" />
       ))}
       {/* today marker */}
       <line
-        x1={axis.todayX - ox}
+        x1={axis.todayX}
         y1={0}
-        x2={axis.todayX - ox}
-        y2={h}
+        x2={axis.todayX}
+        y2={height}
         stroke="#ffffff"
         strokeWidth={1.5}
         strokeDasharray="4 4"
-        opacity={0.7}
+        opacity={0.6}
       />
-      <circle cx={axis.todayX - ox} cy={oy} r={4} fill="#ffffff" />
-      <text x={axis.todayX - ox + 7} y={oy - 8} fontSize={11} fontWeight={700} fill="#ffffff">
+      <circle cx={axis.todayX} cy={oy} r={4} fill="#ffffff" />
+      <text x={axis.todayX + 7} y={oy - 8} fontSize={11} fontWeight={700} fill="#ffffff">
         TODAY · {axis.today}
       </text>
     </svg>
   );
+}
+
+/** Octopus handle selection: pick the source/target sides that shorten the run. */
+function pickHandles(
+  ps: { cx: number; cy: number },
+  pt: { cx: number; cy: number },
+  srcHub: boolean,
+  tgtHub: boolean,
+): { sourceHandle: string; targetHandle: string } {
+  const dx = pt.cx - ps.cx;
+  const dy = pt.cy - ps.cy;
+  const vertical = Math.abs(dy) > Math.abs(dx);
+  const sourceHandle = srcHub && vertical ? (dy > 0 ? "sb" : "st") : dx >= 0 ? "sr" : "sl";
+  const targetHandle = tgtHub && vertical ? (dy > 0 ? "tt" : "tb") : dx >= 0 ? "tl" : "tr";
+  return { sourceHandle, targetHandle };
+}
+
+// ── Mobile (PLE-97 + spec §6): stacked chapter bands, pager, rails, hub chips ─
+function MobileBands({
+  data,
+  layout,
+  selectedId,
+  hubIds,
+  onNodeSelect,
+}: {
+  data: TimelineData;
+  layout: FlowLayout;
+  selectedId: string | null;
+  hubIds: Set<string>;
+  onNodeSelect: (id: string) => void;
+}) {
+  const nodeById = useMemo(
+    () => new Map(data.nodes.map((n) => [n.id, n])),
+    [data.nodes],
+  );
+  const posById = useMemo(
+    () => new Map(layout.nodes.map((p) => [p.id, p])),
+    [layout.nodes],
+  );
+
+  // Nodes grouped by chapter, in chronological order within each band.
+  const byChapter = useMemo(() => {
+    const groups: string[][] = layout.zones.map(() => []);
+    const ordered = [...layout.nodes].sort((a, b) => a.cx - b.cx);
+    for (const p of ordered) groups[p.chapter]?.push(p.id);
+    return groups;
+  }, [layout.nodes, layout.zones]);
+
+  // Cross-zone tentacles into a hub → "→ hub" chips on the source's band.
+  const chipsByChapter = useMemo(() => {
+    const chips: { label: string; chapter: number }[][] = layout.zones.map(() => []);
+    for (const e of data.edges) {
+      const ps = posById.get(e.from);
+      const pt = posById.get(e.to);
+      if (!ps || !pt || ps.chapter === pt.chapter) continue;
+      if (!hubIds.has(e.to)) continue;
+      const hub = nodeById.get(e.to);
+      const src = nodeById.get(e.from);
+      if (!hub || !src) continue;
+      chips[ps.chapter].push({
+        label: `${shortTitle(src.title)} → ${shortTitle(hub.title)} (${layout.zones[pt.chapter].kicker})`,
+        chapter: ps.chapter,
+      });
+    }
+    return chips;
+  }, [data.edges, posById, nodeById, hubIds, layout.zones]);
+
+  const activeChapter = selectedId ? posById.get(selectedId)?.chapter ?? -1 : -1;
+
+  return (
+    <div className="flow-mbands">
+      <div className="flow-mbands__topbar">
+        <span className="flow-mbands__t">Strategic Timeline</span>
+        <span className="flow-mbands__nav">
+          {layout.zones.length} chapters ▾
+        </span>
+      </div>
+      <div className="flow-mbands__scroll">
+        {layout.zones.map((z, ci) => {
+          const ids = byChapter[ci] ?? [];
+          if (ids.length === 0) return null;
+          const isActive = ci === activeChapter;
+          return (
+            <section
+              key={z.key}
+              className={`flow-mband${ci % 2 === 1 ? " flow-mband--alt" : ""}${isActive ? " flow-mband--active" : ""}`}
+            >
+              <header className="flow-mband__head">
+                <div className="flow-mband__kicker">
+                  {z.kicker}{isActive ? " · active" : ""}
+                </div>
+                <div className="flow-mband__title">{z.title}</div>
+                <div className="flow-mband__range">{z.rangeLabel}</div>
+              </header>
+              <div className="flow-mband__rail">
+                {ids.map((id) => {
+                  const n = nodeById.get(id)!;
+                  const p = posById.get(id)!;
+                  const color = NODE_COLOR[n.type] ?? "#94a3b8";
+                  const sel = id === selectedId;
+                  return (
+                    <button
+                      key={id}
+                      className={`flow-mnode${sel ? " flow-mnode--sel" : ""}${hubIds.has(id) ? " flow-mnode--hub" : ""}`}
+                      style={{ ["--type" as string]: color }}
+                      onClick={() => onNodeSelect(id)}
+                    >
+                      <span className="flow-mnode__kind">
+                        {NODE_TYPE_LABEL[n.type]}{hubIds.has(id) ? " · hub" : ""}
+                      </span>
+                      <span className="flow-mnode__ttl">{n.title}</span>
+                      {p.effectiveDate && (
+                        <span className="flow-mnode__meta">{p.effectiveDate}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              {chipsByChapter[ci]?.map((c, i) => (
+                <div key={i} className="flow-mtent">⌁ {c.label}</div>
+              ))}
+            </section>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function shortTitle(t: string): string {
+  const cut = t.split(/[—(]/)[0].trim();
+  return cut.length > 28 ? cut.slice(0, 27) + "…" : cut;
 }
 
 function FlowCanvasInner({
@@ -189,9 +363,6 @@ function FlowCanvasInner({
 }: Props) {
   const { setCenter, fitView } = useReactFlow();
   const mobile = useIsMobile();
-  // Legend docks to a collapsed disclosure chip on mobile (Progressive
-  // Disclosure) so it stops eating graph space; always-open on desktop.
-  const [legendOpen, setLegendOpen] = useState(false);
 
   const layout = useMemo(
     () => computeTimelineLayout(data.nodes, data.edges, today),
@@ -205,6 +376,22 @@ function FlowCanvasInner({
     () => new Map(layout.nodes.map((p) => [p.id, p])),
     [layout],
   );
+
+  // Octopus hubs: `concept` nodes that ≥3 edges converge on (in-degree).
+  const hubIds = useMemo(() => {
+    const inDeg = new Map<string, number>();
+    for (const e of data.edges) {
+      if (!posById.has(e.from) || !posById.has(e.to)) continue;
+      inDeg.set(e.to, (inDeg.get(e.to) ?? 0) + 1);
+    }
+    const hubs = new Set<string>();
+    for (const n of data.nodes) {
+      if (n.type === "concept" && (inDeg.get(n.id) ?? 0) >= HUB_MIN_INDEGREE) {
+        hubs.add(n.id);
+      }
+    }
+    return hubs;
+  }, [data.edges, data.nodes, posById]);
 
   const rfNodes: Node[] = useMemo(() => {
     return layout.nodes.map((p) => {
@@ -221,6 +408,7 @@ function FlowCanvasInner({
         confidence: n.confidence,
         isToday: temporalStateFor(n, today) === "today",
         isFocal: n.id === FOCAL_ID,
+        isHub: hubIds.has(n.id),
         dimmed,
       };
       return {
@@ -231,11 +419,9 @@ function FlowCanvasInner({
         selected: p.id === selectedId,
         draggable: false,
         connectable: false,
-        sourcePosition: Position.Right,
-        targetPosition: Position.Left,
       };
     });
-  }, [layout, nodeById, matchedNodeIds, today, selectedId]);
+  }, [layout, nodeById, matchedNodeIds, today, selectedId, hubIds]);
 
   const rfEdges: RFEdge[] = useMemo(() => {
     return data.edges
@@ -245,18 +431,30 @@ function FlowCanvasInner({
         const dim =
           matchedNodeIds != null &&
           (!matchedNodeIds.has(e.from) || !matchedNodeIds.has(e.to));
+        const ps = posById.get(e.from)!;
+        const pt = posById.get(e.to)!;
+        const { sourceHandle, targetHandle } = pickHandles(
+          ps,
+          pt,
+          hubIds.has(e.from),
+          hubIds.has(e.to),
+        );
         return {
           id: e.id,
           source: e.from,
           target: e.to,
+          sourceHandle,
+          targetHandle,
           label: e.label ?? undefined,
-          type: "default",
+          // Octopus: orthogonal (elbow) segments with softened corners (§3.1).
+          type: "smoothstep",
+          pathOptions: { borderRadius: 8 },
           markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15, color },
           style: {
             stroke: color,
             strokeWidth: e.kind === "finances" || e.kind === "converges_on" ? 1.8 : 1.3,
             strokeDasharray: e.kind === "finances" ? "6 4" : undefined,
-            opacity: dim ? 0.05 : 0.4,
+            opacity: dim ? 0.05 : 0.42,
           },
           labelStyle: { fill: "#cdd5e4", fontSize: 9.5, fontWeight: 500 },
           labelBgStyle: { fill: "#11141b", fillOpacity: 0.82 },
@@ -264,13 +462,12 @@ function FlowCanvasInner({
           labelBgBorderRadius: 4,
         };
       });
-  }, [data.edges, posById, matchedNodeIds]);
+  }, [data.edges, posById, matchedNodeIds, hubIds]);
 
   const stems = useMemo(
     () => layout.nodes.map((p) => ({ cx: p.cx, cy: p.cy })),
     [layout],
   );
-  const half = layout.height / 2;
 
   const handleNodeClick: NodeMouseHandler = useCallback(
     (_evt, node) => {
@@ -280,31 +477,39 @@ function FlowCanvasInner({
   );
 
   useEffect(() => {
-    if (!focusNodeId) return;
+    if (!focusNodeId || mobile) return;
     const p = posById.get(focusNodeId);
     if (!p) return;
     setCenter(p.cx, p.cy, { zoom: 1.1, duration: prefersReducedMotion() ? 0 : 600 });
-  }, [focusNodeId, posById, setCenter]);
+  }, [focusNodeId, posById, setCenter, mobile]);
 
-  // PLE-97: initial framing. Desktop fits the whole graph; mobile mounts at a
-  // readable zoom centred on the focal/TODAY anchor and lets the user pan time,
-  // instead of fitView() collapsing the wide axis into a sub-readable band.
   const didInit = useRef(false);
   const handleInit = useCallback(
     (instance: ReactFlowInstance) => {
       if (didInit.current) return;
       didInit.current = true;
-      if (mobile) {
-        const anchor = posById.get(FOCAL_ID);
-        const ax = anchor ? anchor.cx : layout.axis.todayX;
-        const ay = anchor ? anchor.cy : 0;
-        instance.setCenter(ax, ay, { zoom: MOBILE_MOUNT_ZOOM, duration: 0 });
+      const anchor = posById.get(FOCAL_ID);
+      if (mobile && anchor) {
+        instance.setCenter(anchor.cx, anchor.cy, { zoom: MOBILE_MOUNT_ZOOM, duration: 0 });
       } else {
-        instance.fitView({ padding: 0.12 });
+        instance.fitView({ padding: 0.1 });
       }
     },
-    [mobile, posById, layout.axis.todayX],
+    [mobile, posById],
   );
+
+  // Mobile: the 5 columns can't coexist (PLE-97) → stacked chapter bands.
+  if (mobile) {
+    return (
+      <MobileBands
+        data={data}
+        layout={layout}
+        selectedId={selectedId}
+        hubIds={hubIds}
+        onNodeSelect={onNodeSelect}
+      />
+    );
+  }
 
   return (
     <ReactFlow
@@ -314,8 +519,8 @@ function FlowCanvasInner({
       onNodeClick={handleNodeClick}
       onPaneClick={() => onNodeSelect("")}
       onInit={handleInit}
-      fitViewOptions={{ padding: 0.12 }}
-      minZoom={0.15}
+      fitViewOptions={{ padding: 0.1 }}
+      minZoom={0.1}
       maxZoom={2.5}
       nodesDraggable={false}
       nodesConnectable={false}
@@ -324,85 +529,62 @@ function FlowCanvasInner({
     >
       <Background variant={BackgroundVariant.Dots} gap={30} size={1} color="#20262f" />
       <ViewportPortal>
-        <TimelineAxisLayer axis={layout.axis} half={half} stems={stems} />
+        <ZoneLayer zones={layout.zones} subgroups={layout.subgroups} />
+        <TimelineAxisLayer axis={layout.axis} width={layout.width} height={layout.height} stems={stems} />
       </ViewportPortal>
       <Controls showInteractive={false} />
-      {/* MiniMap is low value / high space-cost on a touch viewport — hide it. */}
-      {!mobile && (
-        <MiniMap
-          pannable
-          zoomable
-          nodeColor={(n) => NODE_COLOR[(n.data as StageNodeData).type] ?? "#475569"}
-          nodeStrokeWidth={0}
-          maskColor="rgba(8,10,15,0.72)"
-          className="flow-minimap"
-        />
-      )}
+      <MiniMap
+        pannable
+        zoomable
+        nodeColor={(n) => NODE_COLOR[(n.data as StageNodeData).type] ?? "#475569"}
+        nodeStrokeWidth={0}
+        maskColor="rgba(8,10,15,0.72)"
+        className="flow-minimap"
+      />
 
       {!compact && (
         <Panel position="top-left" className="flow-titlecard">
           <h1 className="flow-titlecard__title">Pleet LLC · Strategic Timeline</h1>
           <p className="flow-titlecard__sub">
-            How the venture evolved — Jan 2026 → today → projected · click any node
+            Five chapters along the time axis — Jan 2026 → today → projected · click any node
           </p>
         </Panel>
       )}
 
       {!compact && (
         <Panel position="top-right" className="flow-toolbar">
-          <button className="flow-btn" onClick={() => fitView({ padding: 0.12, duration: 400 })}>
+          <button className="flow-btn" onClick={() => fitView({ padding: 0.1, duration: 400 })}>
             Fit
           </button>
           {toolbar}
         </Panel>
       )}
 
-      {/* Legend: always-open columns on desktop; a collapsed "Legend" chip that
-          opens a compact bottom sheet on mobile so it stops occluding the graph. */}
       <Panel position="bottom-left" className="flow-legend-dock">
-        {mobile && !legendOpen ? (
-          <button
-            className="flow-legend-chip"
-            onClick={() => setLegendOpen(true)}
-            aria-expanded={false}
-          >
-            ⓘ Legend
-          </button>
-        ) : (
-          <div className={`flow-legend${mobile ? " flow-legend--sheet" : ""}`}>
-            {mobile && (
-              <button
-                className="flow-legend__close"
-                onClick={() => setLegendOpen(false)}
-                aria-label="Collapse legend"
-              >
-                ✕
-              </button>
+        <div className="flow-legend">
+          <div className="flow-legend__col">
+            <span className="flow-legend__head">Nodes</span>
+            {(Object.keys(NODE_TYPE_LABEL) as Array<keyof typeof NODE_TYPE_LABEL>).map(
+              (t) => (
+                <span key={t} className="flow-legend__row">
+                  <span className="flow-legend__swatch" style={{ background: NODE_COLOR[t] }} />
+                  {NODE_TYPE_LABEL[t]}
+                </span>
+              ),
             )}
-            <div className="flow-legend__col">
-              <span className="flow-legend__head">Nodes</span>
-              {(Object.keys(NODE_TYPE_LABEL) as Array<keyof typeof NODE_TYPE_LABEL>).map(
-                (t) => (
-                  <span key={t} className="flow-legend__row">
-                    <span className="flow-legend__swatch" style={{ background: NODE_COLOR[t] }} />
-                    {NODE_TYPE_LABEL[t]}
-                  </span>
-                ),
-              )}
-            </div>
-            <div className="flow-legend__col">
-              <span className="flow-legend__head">Edges</span>
-              {(["converges_on", "finances", "partners", "depends_on", "introduced"] as const).map(
-                (k) => (
-                  <span key={k} className="flow-legend__row">
-                    <span className="flow-legend__line" style={{ background: EDGE_COLOR[k] }} />
-                    {EDGE_KIND_LABEL[k]}
-                  </span>
-                ),
-              )}
-            </div>
           </div>
-        )}
+          <div className="flow-legend__col">
+            <span className="flow-legend__head">Edges</span>
+            {(["converges_on", "finances", "depends_on", "partners", "introduced"] as const).map(
+              (k) => (
+                <span key={k} className="flow-legend__row">
+                  <span className="flow-legend__line" style={{ background: EDGE_COLOR[k] }} />
+                  {EDGE_KIND_LABEL[k]}
+                </span>
+              ),
+            )}
+          </div>
+        </div>
       </Panel>
     </ReactFlow>
   );

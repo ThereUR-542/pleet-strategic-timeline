@@ -22,6 +22,8 @@ export interface StageNodeData {
   confidence: Confidence;
   isToday: boolean;
   isFocal: boolean;
+  /** Octopus convergence point: a `concept` node with ≥3 converging edges. */
+  isHub: boolean;
   /** Dimmed by the search filter (still visible, just receded). */
   dimmed: boolean;
   [key: string]: unknown;
@@ -40,9 +42,16 @@ function StageNodeImpl({ data, selected }: NodeProps) {
     d.dimmed ? "flow-node--dimmed" : "",
     d.confidence === "unconfirmed" ? "flow-node--unconfirmed" : "",
     d.isFocal ? "flow-node--focal" : "",
+    d.isHub ? "flow-node--hub" : "",
   ]
     .filter(Boolean)
     .join(" ");
+
+  // Octopus routing (PLE-121 §3): every node carries source+target handles on
+  // left & right; `concept` hubs add top & bottom so converging tentacles can
+  // reach from any direction. Handle ids are sided ("sl"/"tl"=source/target
+  // left, etc.) and selected per-edge in FlowCanvas to minimise path length.
+  const isHub = d.isHub;
 
   return (
     <div
@@ -50,7 +59,18 @@ function StageNodeImpl({ data, selected }: NodeProps) {
       style={{ ["--node-accent" as string]: color }}
       title={d.title}
     >
-      <Handle type="target" position={Position.Left} className="flow-handle" />
+      <Handle id="tl" type="target" position={Position.Left} className="flow-handle" />
+      <Handle id="sl" type="source" position={Position.Left} className="flow-handle" />
+      <Handle id="tr" type="target" position={Position.Right} className="flow-handle" />
+      <Handle id="sr" type="source" position={Position.Right} className="flow-handle" />
+      {isHub && (
+        <>
+          <Handle id="tt" type="target" position={Position.Top} className="flow-handle" />
+          <Handle id="st" type="source" position={Position.Top} className="flow-handle" />
+          <Handle id="tb" type="target" position={Position.Bottom} className="flow-handle" />
+          <Handle id="sb" type="source" position={Position.Bottom} className="flow-handle" />
+        </>
+      )}
       <span className="flow-node__bar" aria-hidden="true" />
       <NodeIcon
         node={{ id: d.id, title: d.title, type: d.type, thread: d.thread, summary: d.summary }}
@@ -73,7 +93,6 @@ function StageNodeImpl({ data, selected }: NodeProps) {
           </span>
         )}
       </div>
-      <Handle type="source" position={Position.Right} className="flow-handle" />
     </div>
   );
 }

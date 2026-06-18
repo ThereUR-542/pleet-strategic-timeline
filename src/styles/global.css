@@ -46,6 +46,15 @@
   --panel: #0e1117;
   --node-person: #6ea8ff; --node-project: #57e0a8;
   --node-event: #f59e0b; --node-concept: #c084fc;
+
+  /* Zoned chapter-column layout (PLE-114 §5 → accepted on PLE-121). Zone =
+     a tinted chronological swim-lane; sub-containers = thread clusters nested
+     inside a zone (color-mix the thread color by the *-pct tokens). */
+  --zone-fill: rgba(255, 255, 255, 0.018);     /* base chapter-column wash */
+  --zone-fill-alt: rgba(255, 255, 255, 0.040); /* alternating column (figure-ground) */
+  --zone-border: rgba(255, 255, 255, 0.07);    /* 1px vertical divider between zones */
+  --subgroup-fill-pct: 8%;                      /* thread-color mix for sub-container fill */
+  --subgroup-border-pct: 26%;                   /* thread-color mix for sub-container border */
 }
 
 * { box-sizing: border-box; }
