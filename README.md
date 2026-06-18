@@ -41,9 +41,36 @@ Swapping in Lawrence's real assets/methodology is a change to `src/data/content.
 (and asset URLs) plus the §6 model parameters — **not** a rebuild (§6.4). Every node
 carries a `confidence` flag; unconfirmed facts render "pending verification" (§12).
 
-## Deployment
+## Deployment — one-click Vercel import
 
-Vercel (static SPA). Default to an unguessable preview URL until the access model
-is confirmed (§11/§12).
+This repo is a static client-side SPA and is ready to import into Vercel as-is.
+`vercel.json` already pins every setting below (including the SPA rewrite so deep
+links don't 404), so the dashboard fields are auto-detected — just click through.
 
-**Quick start:** Use `NODE_ENV=development npm install --include=dev --cache /tmp/npm-cache-ple78` to install (shared npm cache is permission-locked). Then `npm test` + `npm run build`. See [scripts/DEPLOYMENT.md](scripts/DEPLOYMENT.md) for full deployment docs, access gating, and Vercel SSO setup.
+| Vercel setting     | Value           |
+| ------------------ | --------------- |
+| Framework Preset   | **Vite**        |
+| Install Command     | `npm install`   |
+| Build Command      | `npm run build` |
+| Output Directory   | `dist`          |
+| Node.js Version    | 18.x or 20.x    |
+
+**Import steps:** Vercel → *Add New… → Project* → import this GitHub repo →
+the fields above are detected from `vercel.json` → **Deploy**. No env vars
+required for the v1 build.
+
+A clean clone builds with the exact commands Vercel runs:
+
+```bash
+npm ci          # installs deps incl. devDeps (vite/tsc) — required to build
+npm run build   # tsc -b && vite build  →  dist/
+```
+
+> **Note (agent build environment only):** the `--cache /tmp/npm-cache-ple78`
+> install flag in [scripts/DEPLOYMENT.md](scripts/DEPLOYMENT.md) is specific to
+> this CI sandbox's permission-locked cache. It is **not** needed on Vercel or a
+> normal machine — a plain `npm install` / `npm ci` works there.
+
+See [scripts/DEPLOYMENT.md](scripts/DEPLOYMENT.md) for access gating and Vercel
+SSO notes. Until the access model is confirmed (§11/§12), keep the deployment on
+an unguessable preview URL.
