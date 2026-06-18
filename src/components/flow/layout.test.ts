@@ -42,9 +42,37 @@ describe("computeTimelineLayout", () => {
 
   it("builds a ticked axis with a today marker inside the span", () => {
     expect(layout.axis.ticks.length).toBeGreaterThan(6);
-    expect(layout.axis.ticks.some((t) => t.label === "Jan" && t.sub === "2026")).toBe(true);
+    // PLE-133: per-date ticks carry the year when it changes (first tick always).
+    expect(layout.axis.ticks[0].sub).not.toBeNull();
+    expect(layout.axis.ticks.some((t) => /\d{4}/.test(t.sub ?? ""))).toBe(true);
     expect(layout.axis.todayX).toBeGreaterThan(layout.axis.xStart);
     expect(layout.axis.todayX).toBeLessThan(layout.axis.xEnd);
+  });
+
+  it("spaces date columns EVENLY (PLE-133 board directive)", () => {
+    // Every distinct date tick is the same uniform step from the next — a
+    // regular lattice, no compressed or variable gaps (continuity in spacing).
+    const xs = [...new Set(layout.axis.ticks.map((t) => Math.round(t.x)))].sort(
+      (a, b) => a - b,
+    );
+    const gaps = xs.slice(1).map((x, i) => x - xs[i]);
+    // Uniform lattice: every gap is the base column step (or an exact multiple,
+    // if a truly-undated node ever consumes an unticked slot between dates).
+    const base = Math.min(...gaps);
+    for (const g of gaps) expect(g % base).toBe(0);
+  });
+
+  it("stacks same-date nodes on a uniform, aligned row grid (PLE-133)", () => {
+    // All node rows fall on the same vertical grid across every column.
+    const cys = [...new Set(layout.nodes.map((n) => Math.round(n.cy)))].sort(
+      (a, b) => a - b,
+    );
+    if (cys.length > 1) {
+      const step = cys[1] - cys[0];
+      for (let i = 1; i < cys.length; i++) {
+        expect((cys[i] - cys[0]) % step).toBe(0);
+      }
+    }
   });
 
   it("buckets an undated node by its earliest dated neighbor", () => {

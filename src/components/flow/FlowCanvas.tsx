@@ -58,6 +58,10 @@ const HUB_MIN_INDEGREE = 3;
 // PLE-97: the ≤760px breakpoint, mirrored exactly in flow.css's media query.
 const MOBILE_BP = 760;
 const MOBILE_MOUNT_ZOOM = 0.9;
+// PLE-133: the even lattice is intentionally WIDE (board: "big TV"). Fitting the
+// whole thing on mount renders nodes unreadable, so we mount at a readable zoom
+// anchored on the focal node and let pan + the Fit button reveal the full lattice.
+const DESKTOP_MOUNT_ZOOM = 0.62;
 
 // ── Z-plane depth (PLE-115 §10) ──────────────────────────────────────────────
 // §10.2: which semantic variable maps to Z → story `thread`. Threads cluster
@@ -636,9 +640,17 @@ function FlowCanvasInner({
     (instance: ReactFlowInstance) => {
       if (didInit.current) return;
       didInit.current = true;
+      const wantFit =
+        typeof window !== "undefined" &&
+        new URLSearchParams(window.location.search).has("fit");
       const anchor = posById.get(FOCAL_ID);
-      if (mobile && anchor) {
-        instance.setCenter(anchor.cx, anchor.cy, { zoom: MOBILE_MOUNT_ZOOM, duration: 0 });
+      if (wantFit) {
+        instance.fitView({ padding: 0.08 });
+      } else if (anchor) {
+        instance.setCenter(anchor.cx, anchor.cy, {
+          zoom: mobile ? MOBILE_MOUNT_ZOOM : DESKTOP_MOUNT_ZOOM,
+          duration: 0,
+        });
       } else {
         instance.fitView({ padding: 0.1 });
       }
