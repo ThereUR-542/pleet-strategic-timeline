@@ -34,16 +34,44 @@ The CI pipeline (`.github/workflows/ci.yml`) runs these checks on every PR and p
 
 ## Vercel Deployments
 
+### Setup: GitHub Integration
+
+To enable automatic deployments, configure the GitHub integration:
+
+1. **Via Vercel Dashboard:**
+   - Go to https://vercel.com
+   - Open the project settings (gear icon)
+   - Navigate to "Git Integrations"
+   - Connect GitHub repository `ThereUR-542/pleet-strategic-timeline`
+   - Set production branch to `main` or `master`
+
+2. **Automatic Deployment Behavior:**
+   - Push to `main`/`master` → auto-deploys to production
+   - Create a PR → auto-generates preview URL
+   - Push to PR branch → updates preview URL
+
 ### Preview Deployments (Pull Requests)
 - Automatically triggered when a PR is opened
-- URL format: `https://<repo>-<pr-number>.<team>.vercel.app`
-- Each preview gets a unique, unguessable URL by default
+- URL format: `https://pleet-strategic-timeline-git-<branch-name>.<team>.vercel.app`
+- Each preview gets a unique, unguessable URL by default (no authentication required)
 - Preview URLs expire when the PR is closed
 
 ### Production Deployments (main/master)
 - Automatically triggered on push to `main` or `master`
 - URL: https://default-tau-neon.vercel.app
 - Immutable deployment URL (if needed): use the individual deployment links in Vercel dashboard
+
+### Manual Deployment (if GitHub integration not yet configured)
+```bash
+# Install Vercel CLI
+npm install -g vercel
+
+# Deploy preview
+vercel --preview
+
+# Deploy production
+vercel --prod
+```
 
 ## Access Control
 
