@@ -56,7 +56,18 @@ jobs:
 
       - name: Deploy to Vercel Production
         env:
+          # Secret (DevOps-owned). Set via `gh secret set VERCEL_TOKEN` at repo scope —
+          # this job has no `environment:` block, so an env-scoped secret would NOT reach it.
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          # Project linking (PLE-132 Gap 2). A fresh actions/checkout has no `.vercel/`
+          # context and it is not committed, so a bare `vercel deploy --prod` would fail
+          # or create a wrong/new project non-interactively. These are project IDs, not
+          # secrets — they let the CLI resolve the canonical `_default` project without
+          # `vercel link`/`.vercel/project.json`.
+          VERCEL_ORG_ID: team_TJXAYUO2XsQ1Dvxqpczl9XYG
+          VERCEL_PROJECT_ID: prj_TOaQijUYMkj8Ep95Z8W3lVKBBOFF
         run: |
           npm install -g vercel
-          vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
+          # Pull production project settings so the deploy is fully linked + non-interactive.
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel deploy --prod --token="$VERCEL_TOKEN"
