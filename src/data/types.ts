@@ -166,3 +166,37 @@ export interface TimelineData {
   /** The narrative "today" anchor (§1/§4.7): 2026-06-17 Oswego approval. */
   anchorDate: IsoDate;
 }
+
+/**
+ * One swim-lane (PLE-133) — the data-level identity of a `Thread`: which threads
+ * exist, their story order (the vertical band order), display label, colour
+ * token, narrative chapter, and Z-plane depth stratum (PLE-115). This is the
+ * editable lane registry served as `lanes.yaml` (PLE-136); the *pixel* band
+ * geometry (px-per-month, gaps, padding) stays as render-engine constants in
+ * `components/flow/layout.ts` since it is rendering tuning, not content.
+ */
+export interface Lane {
+  /** Matches a `Thread` key; the node↔lane join key. */
+  id: Thread;
+  /** Human label for chips, band labels, summaries. */
+  label: string;
+  /** Story order — ascending = top-to-bottom band order. */
+  order: number;
+  /** Narrative chapter key this lane belongs to (PLE-114). */
+  chapter: string;
+  /** CSS custom-property reference for the lane colour (e.g. `var(--thread-growth)`). */
+  color: string;
+  /** Z-plane depth stratum (PLE-115 §10.2); co-chapter lanes share a layer. */
+  zLayer: number;
+}
+
+/**
+ * The full bundle the runtime loader assembles from the three YAML files
+ * (PLE-136): `data` (nodes/connections/citations/demand from nodes.yaml +
+ * connections.yaml) and the `lanes` registry (lanes.yaml). `data` is the exact
+ * `TimelineData` the app rendered pre-YAML — so the migration is lossless.
+ */
+export interface TimelineBundle {
+  data: TimelineData;
+  lanes: Lane[];
+}

@@ -1,5 +1,5 @@
-import { useCallback, useId } from "react";
-import type { Thread, NodeType } from "../../data/types";
+import { useCallback, useId, useMemo } from "react";
+import type { Lane, Thread, NodeType } from "../../data/types";
 
 export interface FilterState {
   query: string;
@@ -43,10 +43,24 @@ interface Props {
   onChange: (f: FilterState) => void;
   resultCount: number;
   totalCount: number;
+  /** Lane registry from lanes.yaml (PLE-136); drives the thread chips + order.
+   *  Falls back to the static defaults when absent (e.g. in unit tests). */
+  lanes?: Lane[];
 }
 
-export function SearchFilterBar({ filter, onChange, resultCount, totalCount }: Props) {
+export function SearchFilterBar({ filter, onChange, resultCount, totalCount, lanes }: Props) {
   const searchId = useId();
+
+  // Thread chips are data-driven from the lane registry (id, label, story order)
+  // when supplied; otherwise fall back to the built-in defaults.
+  const threadChips = useMemo<{ id: Thread; label: string }[]>(() => {
+    if (lanes && lanes.length) {
+      return [...lanes]
+        .sort((a, b) => a.order - b.order)
+        .map((l) => ({ id: l.id, label: l.label }));
+    }
+    return ALL_THREADS.map((t) => ({ id: t, label: THREAD_LABELS[t] }));
+  }, [lanes]);
 
   const setQuery = useCallback((q: string) => {
     onChange({ ...filter, query: q });
@@ -91,15 +105,15 @@ export function SearchFilterBar({ filter, onChange, resultCount, totalCount }: P
 
       {/* Thread filters */}
       <div className="filter-group" role="group" aria-label="Filter by thread">
-        {ALL_THREADS.map((t) => (
+        {threadChips.map(({ id: t, label }) => (
           <button
             key={t}
             className={`filter-chip filter-chip-thread filter-chip-thread-${t.replace(/_/g, "-")} ${filter.threads.includes(t) ? "active" : ""}`}
             onClick={() => toggleThread(t)}
             aria-pressed={filter.threads.includes(t)}
-            title={THREAD_LABELS[t]}
+            title={label}
           >
-            {THREAD_LABELS[t]}
+            {label}
           </button>
         ))}
       </div>

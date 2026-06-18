@@ -1,6 +1,23 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import ReactDOM from "react-dom/client";
+import TIMELINE_DATA from "./data/content";
+import { LANES } from "./data/lanes";
+
+// PLE-136: content now loads asynchronously from /data/*.yaml. jsdom has no
+// server to fetch from, so we mock the loader with the real content — the guard
+// still proves the app mounts a non-empty shell once data resolves.
+vi.mock("./data/loader", () => ({
+  loadTimelineBundle: async () => ({ data: TIMELINE_DATA, lanes: LANES }),
+}));
+
 import { App } from "./App";
+
+async function flush(container: HTMLElement, selector: string, tries = 60) {
+  for (let i = 0; i < tries; i++) {
+    if (container.querySelector(selector)) return;
+    await new Promise((r) => setTimeout(r, 5));
+  }
+}
 
 describe("App render smoke test (PLE-47 guard)", () => {
   let container: HTMLDivElement;
@@ -21,7 +38,7 @@ describe("App render smoke test (PLE-47 guard)", () => {
     try {
       root = ReactDOM.createRoot(container);
       root.render(<App />);
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await flush(container, ".flow-shell");
     } catch (e) {
       threwError = true;
     }
@@ -33,7 +50,7 @@ describe("App render smoke test (PLE-47 guard)", () => {
   it("renders non-empty shell with navigation tabs", async () => {
     root = ReactDOM.createRoot(container);
     root.render(<App />);
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await flush(container, ".flow-shell");
 
     const shell = container.querySelector(".flow-shell");
     expect(shell).not.toBeNull();

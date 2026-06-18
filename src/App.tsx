@@ -1,9 +1,11 @@
-import { useState, useCallback, useMemo } from "react";
-import TIMELINE_DATA from "./data/content";
+import { useState, useCallback, useMemo, useEffect } from "react";
+import type { Lane, TimelineData } from "./data/types";
+import { loadTimelineBundle } from "./data/loader";
 import { resolveToday } from "./lib/temporal";
 import { FlowCanvas } from "./components/flow/FlowCanvas";
 import { DetailPanel } from "./components/flow/DetailPanel";
 import { DemandPanel } from "./components/flow/DemandPanel";
+import { DataErrorScreen, DataLoadingScreen } from "./components/DataErrorScreen";
 import {
   CitationsPanel,
   CitationsProvider,
@@ -18,15 +20,37 @@ import "./styles/flow.css";
 
 type ViewTab = "flow" | "summary";
 
+// ── Loader shell (PLE-136): content is fetched from /data/*.yaml at runtime.
+// While it loads we show a spinner; on any located failure we show a clear
+// error screen (never a blank page); on success we mount the timeline.
 export function App() {
+  const [data, setData] = useState<TimelineData | null>(null);
+  const [lanes, setLanes] = useState<Lane[]>([]);
+  const [error, setError] = useState<unknown>(null);
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    let live = true;
+    setData(null);
+    setError(null);
+    loadTimelineBundle().then(
+      (bundle) => { if (live) { setData(bundle.data); setLanes(bundle.lanes); } },
+      (err) => { if (live) setError(err); },
+    );
+    return () => { live = false; };
+  }, [attempt]);
+
+  if (error) return <DataErrorScreen error={error} onRetry={() => setAttempt((a) => a + 1)} />;
+  if (!data) return <DataLoadingScreen />;
+
   return (
     <CitationsProvider>
-      <TimelineApp />
+      <TimelineApp data={data} lanes={lanes} />
     </CitationsProvider>
   );
 }
 
-function TimelineApp() {
+function TimelineApp({ data, lanes }: { data: TimelineData; lanes: Lane[] }) {
   const today = resolveToday(typeof window !== "undefined" ? window.location.search : "");
   const { open: openCitations } = useCitations();
 
@@ -35,8 +59,8 @@ function TimelineApp() {
   const initialSelected = useMemo(() => {
     if (typeof window === "undefined") return null;
     const id = new URLSearchParams(window.location.search).get("node");
-    return id && TIMELINE_DATA.nodes.some((n) => n.id === id) ? id : null;
-  }, []);
+    return id && data.nodes.some((n) => n.id === id) ? id : null;
+  }, [data]);
   const [selectedId, setSelectedId] = useState<string | null>(initialSelected);
   const [filter, setFilter] = useState<FilterState>(EMPTY_FILTER);
   const [presenterActive, setPresenterActive] = useState(false);
@@ -47,13 +71,13 @@ function TimelineApp() {
   );
 
   const presenterStepIds = useMemo(
-    () => buildPresenterSteps(TIMELINE_DATA.nodes, TIMELINE_DATA.edges),
-    [],
+    () => buildPresenterSteps(data.nodes, data.edges),
+    [data],
   );
 
   const matchedIds = useMemo(
-    () => matchingNodeIds(TIMELINE_DATA.nodes, filter),
-    [filter],
+    () => matchingNodeIds(data.nodes, filter),
+    [data, filter],
   );
 
   const handleNodeSelect = useCallback((id: string) => {
@@ -71,7 +95,7 @@ function TimelineApp() {
   }, []);
 
   const selectedNode = selectedId
-    ? TIMELINE_DATA.nodes.find((n) => n.id === selectedId) ?? null
+    ? data.nodes.find((n) => n.id === selectedId) ?? null
     : null;
 
   const presenterNodeId = presenterActive ? (presenterStepIds[presenterStep] ?? null) : null;
@@ -80,8 +104,8 @@ function TimelineApp() {
   if (presenterActive) {
     return (
       <PresenterMode
-        nodes={TIMELINE_DATA.nodes}
-        edges={TIMELINE_DATA.edges}
+        nodes={data.nodes}
+        edges={data.edges}
         stepIndex={presenterStep}
         stepIds={presenterStepIds}
         onStepChange={setPresenterStep}
@@ -90,7 +114,7 @@ function TimelineApp() {
       >
         <div className="flow-canvas-host" style={{ height: "100%" }}>
           <FlowCanvas
-            data={TIMELINE_DATA}
+            data={data}
             today={today}
             selectedId={presenterNodeId}
             focusNodeId={presenterNodeId}
@@ -140,9 +164,9 @@ function TimelineApp() {
           <button
             className="btn-toggle btn-citations"
             onClick={() => openCitations()}
-            aria-label={`Open citations panel (${TIMELINE_DATA.citations.length} sources)`}
+            aria-label={`Open citations panel (${data.citations.length} sources)`}
           >
-            Works Cited ({TIMELINE_DATA.citations.length})
+            Works Cited ({data.citations.length})
           </button>
         </div>
 
@@ -150,8 +174,9 @@ function TimelineApp() {
           <SearchFilterBar
             filter={filter}
             onChange={setFilter}
-            resultCount={matchedIds?.size ?? TIMELINE_DATA.nodes.length}
-            totalCount={TIMELINE_DATA.nodes.length}
+            resultCount={matchedIds?.size ?? data.nodes.length}
+            totalCount={data.nodes.length}
+            lanes={lanes}
           />
         )}
       </div>
@@ -161,7 +186,7 @@ function TimelineApp() {
         <div id="panel-flow" role="tabpanel" aria-labelledby="tab-flow" className="flow-stage">
           <div className="flow-canvas-host">
             <FlowCanvas
-              data={TIMELINE_DATA}
+              data={data}
               today={today}
               selectedId={selectedId}
               focusNodeId={null}
@@ -169,7 +194,7 @@ function TimelineApp() {
               onNodeSelect={handleNodeSelect}
             />
             <DemandPanel
-              model={TIMELINE_DATA.demandModel}
+              model={data.demandModel}
               open={demandOpen}
               onToggle={() => setDemandOpen((v) => !v)}
             />
@@ -183,9 +208,9 @@ function TimelineApp() {
               />
               <DetailPanel
                 node={selectedNode}
-                citations={TIMELINE_DATA.citations}
-                edges={TIMELINE_DATA.edges}
-                nodes={TIMELINE_DATA.nodes}
+                citations={data.citations}
+                edges={data.edges}
+                nodes={data.nodes}
                 today={today}
                 onClose={() => setSelectedId(null)}
               />
@@ -200,14 +225,14 @@ function TimelineApp() {
           tabIndex={0}
           style={{ flex: "1 1 auto", overflowY: "auto" }}
         >
-          <StrategicSummary data={TIMELINE_DATA} today={today} />
+          <StrategicSummary data={data} today={today} />
         </div>
       )}
 
       {/* ── Citations side panel ── */}
       <CitationsPanel
-        citations={TIMELINE_DATA.citations}
-        nodes={TIMELINE_DATA.nodes}
+        citations={data.citations}
+        nodes={data.nodes}
       />
     </div>
   );
