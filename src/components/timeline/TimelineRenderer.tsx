@@ -240,8 +240,20 @@ interface Props {
   orientation: Orientation;
   today: string;
   focusNodeId: string | null;
-  onNodeClick: (id: string) => void;
+  /** `originEl` is the SVG <g> that triggered the click — modal returns focus there (§4.3). */
+  onNodeClick: (id: string, originEl: Element) => void;
   onOrientationToggle: () => void;
+  /**
+   * Hover-card seam (§4.3). Called with id + fixed screen coords on enter,
+   * null/0/0 on leave. Consumed by App to render <HoverCard>.
+   */
+  onNodeHover?: (id: string | null, x: number, y: number) => void;
+  /** When set, nodes not in this set are dimmed (search/filter). */
+  matchedNodeIds?: Set<string> | null;
+  /** When set, this node gets an extra presenter-step glow ring. */
+  presenterStepId?: string | null;
+  /** Hide the controls bar (presenter mode). */
+  hideControls?: boolean;
 }
 
 export function TimelineRenderer({
@@ -251,6 +263,10 @@ export function TimelineRenderer({
   focusNodeId,
   onNodeClick,
   onOrientationToggle,
+  onNodeHover,
+  matchedNodeIds,
+  presenterStepId,
+  hideControls,
 }: Props) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [todayTooltipVisible, setTodayTooltipVisible] = useState(false);
@@ -278,10 +294,14 @@ export function TimelineRenderer({
 
   const nodeOpacity = useCallback(
     (id: string) => {
+      // Search filter dimming takes precedence over hover highlight
+      if (matchedNodeIds != null) {
+        return matchedNodeIds.has(id) ? 1 : 0.08;
+      }
       if (!connectedIds) return 1;
       return connectedIds.has(id) ? 1 : 0.12;
     },
-    [connectedIds],
+    [connectedIds, matchedNodeIds],
   );
 
   const edgeOpacity = useCallback(
@@ -337,17 +357,19 @@ export function TimelineRenderer({
 
   return (
     <div className="timeline-svg-wrapper" style={{ position: "relative" }}>
-      <div className="timeline-controls">
-        <span className="timeline-title">Pleet LLC · Strategic Timeline</span>
-        <button
-          className="btn-toggle"
-          onClick={onOrientationToggle}
-          aria-pressed={orientation === "vertical"}
-          aria-label={`Switch to ${orientation === "horizontal" ? "vertical" : "horizontal"} layout`}
-        >
-          {orientation === "horizontal" ? "↕ Vertical" : "↔ Horizontal"}
-        </button>
-      </div>
+      {!hideControls && (
+        <div className="timeline-controls">
+          <span className="timeline-title">Pleet LLC · Strategic Timeline</span>
+          <button
+            className="btn-toggle"
+            onClick={onOrientationToggle}
+            aria-pressed={orientation === "vertical"}
+            aria-label={`Switch to ${orientation === "horizontal" ? "vertical" : "horizontal"} layout`}
+          >
+            {orientation === "horizontal" ? "↕ Vertical" : "↔ Horizontal"}
+          </button>
+        </div>
+      )}
 
       <svg
         ref={svgRef}
@@ -590,6 +612,7 @@ export function TimelineRenderer({
             const strokeDash = nl.temporalState === "projected" ? "4 2" : undefined;
             const isActive = node.id === activeId;
             const isFocal = isFocalNode(node.id);
+            const isPresenterStep = presenterStepId === node.id;
             const labelX = isH ? nl.cx + nl.r + 5 : nl.cx + nl.r + 5;
             const labelY = isH ? nl.cy + 4 : nl.cy - 5;
             const stemX2 = isH ? nl.cx : AXIS_X;
@@ -600,10 +623,24 @@ export function TimelineRenderer({
                 key={node.id}
                 opacity={opacity}
                 style={{ cursor: "pointer" }}
-                onMouseEnter={() => setHoveredId(node.id)}
-                onMouseLeave={() => setHoveredId(null)}
-                onClick={() => onNodeClick(node.id)}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNodeClick(node.id); } }}
+                onMouseEnter={(e) => {
+                  setHoveredId(node.id);
+                  if (onNodeHover) {
+                    const rect = (e.currentTarget as SVGGElement).getBoundingClientRect();
+                    onNodeHover(node.id, rect.left + rect.width / 2, rect.top - 8);
+                  }
+                }}
+                onMouseLeave={() => {
+                  setHoveredId(null);
+                  onNodeHover?.(null, 0, 0);
+                }}
+                onClick={(e) => onNodeClick(node.id, e.currentTarget)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onNodeClick(node.id, e.currentTarget);
+                  }
+                }}
                 tabIndex={0}
                 role="button"
                 aria-label={`${node.type}: ${node.title}${node.confidence === "unconfirmed" ? " (unconfirmed)" : ""}`}
@@ -626,6 +663,19 @@ export function TimelineRenderer({
                     strokeWidth="1.5"
                     opacity={0.5}
                     filter={`url(#${GLOW_FILTER})`}
+                  />
+                )}
+                {/* Presenter-step highlight ring */}
+                {isPresenterStep && (
+                  <circle
+                    cx={nl.cx} cy={nl.cy}
+                    r={nl.r + 10}
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="2"
+                    opacity={0.85}
+                    filter={`url(#${GLOW_FILTER})`}
+                    className="presenter-step-ring"
                   />
                 )}
                 {/* Main circle */}

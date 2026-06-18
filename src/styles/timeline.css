@@ -395,3 +395,234 @@ details[open] .legend-summary::before { transform: rotate(90deg); }
   font-style: italic;
   margin-top: 4px;
 }
+
+/* ── Hover card (§4.3) ───────────────────────────────────────────────── */
+
+.hover-card {
+  position: fixed;
+  transform: translate(-50%, -100%);
+  background: rgba(10, 12, 17, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+  padding: 10px 14px;
+  max-width: 280px;
+  z-index: 50;
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+  animation: hover-card-in 0.1s ease-out;
+}
+
+@keyframes hover-card-in {
+  from { opacity: 0; transform: translate(-50%, -95%); }
+  to   { opacity: 1; transform: translate(-50%, -100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hover-card { animation: none; }
+}
+
+.hover-card-type {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-1);
+  margin-bottom: 4px;
+}
+
+.hover-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-0);
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.hover-card-summary {
+  font-size: 11px;
+  color: var(--text-1);
+  line-height: 1.5;
+}
+
+.hover-card-unconfirmed {
+  font-size: 10px;
+  color: var(--fail);
+  margin-top: 5px;
+  font-style: italic;
+}
+
+/* ── Media embeds (§4.4) ─────────────────────────────────────────────── */
+
+.media-embeds {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Gallery */
+
+.media-gallery {
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+}
+
+.media-gallery-viewport {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  background: #000;
+}
+
+.media-gallery-img {
+  max-width: 100%;
+  max-height: 340px;
+  object-fit: contain;
+  display: block;
+}
+
+.media-gallery-external-link {
+  display: contents;
+}
+
+.media-gallery-caption {
+  font-size: 11px;
+  color: var(--text-1);
+  text-align: center;
+  margin: 6px 0 0;
+  padding: 0 10px 8px;
+  font-style: italic;
+}
+
+.media-gallery-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 6px;
+  border-top: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.media-gallery-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--glass-border);
+  background: transparent;
+  color: var(--text-1);
+  font-size: 18px;
+  cursor: pointer;
+  transition: background 0.12s;
+  line-height: 1;
+}
+.media-gallery-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.08); }
+.media-gallery-btn:disabled { opacity: 0.3; cursor: default; }
+.media-gallery-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.media-gallery-counter {
+  font-size: 11px;
+  color: var(--text-1);
+  min-width: 60px;
+  text-align: center;
+}
+
+/* PDF viewer */
+
+.media-pdf-viewer {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  background: #fff;
+}
+
+.media-pdf-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.media-pdf-loading {
+  padding: 24px;
+  text-align: center;
+  font-size: 12px;
+  color: #555;
+}
+
+.media-pdf-error {
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--fail);
+  background: rgba(255, 107, 107, 0.06);
+  border: 1px solid rgba(255, 107, 107, 0.2);
+  border-radius: 8px;
+}
+.media-pdf-error a {
+  color: var(--accent);
+  text-decoration: underline;
+  margin-left: 6px;
+}
+
+/* Map embed */
+
+.media-map-wrapper {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+}
+
+.media-map-iframe {
+  display: block;
+  width: 100%;
+  height: 280px;
+  border: none;
+}
+
+/* Video embed */
+
+.media-video-wrapper {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  background: #000;
+}
+
+.media-video-iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: none;
+}
+
+.media-video-html5 {
+  display: block;
+  width: 100%;
+  max-height: 340px;
+  background: #000;
+}
+
+/* Link list */
+
+.media-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.media-link {
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: underline;
+  word-break: break-all;
+}
+.media-link:hover { opacity: 0.8; }
