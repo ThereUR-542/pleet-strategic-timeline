@@ -1,0 +1,55 @@
+name: Deploy to Production
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches:
+      - master
+      - main
+
+jobs:
+  check-ci-success:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    outputs:
+      ci-passed: "true"
+    steps:
+      - name: CI checks passed
+        run: echo "CI workflow completed successfully"
+
+  request-qa-approval:
+    runs-on: ubuntu-latest
+    needs: check-ci-success
+    environment:
+      name: production
+    steps:
+      - name: QA approval gate reached
+        run: echo "Ready for production deployment — awaiting QA approval"
+
+  deploy-to-production:
+    runs-on: ubuntu-latest
+    needs: request-qa-approval
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_commit.sha }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: NODE_ENV=production npm ci --omit=dev
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy to Vercel Production
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          npm install -g vercel
+          vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
