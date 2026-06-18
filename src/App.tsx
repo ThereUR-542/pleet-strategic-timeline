@@ -2,6 +2,11 @@ import { useMemo } from "react";
 import TIMELINE_DATA from "./data/content";
 import { verifyCumulativeDemand } from "./lib/demand";
 import { resolveToday, temporalStateFor } from "./lib/temporal";
+import {
+  CitationsPanel,
+  CitationsProvider,
+  useCitations,
+} from "./components/citations";
 
 /**
  * Foundation shell (Phase 1). This boots the app against the canonical data
@@ -11,11 +16,24 @@ import { resolveToday, temporalStateFor } from "./lib/temporal";
  * shell with the timeline renderer — the data + math layer below is stable.
  */
 export function App() {
+  return (
+    <CitationsProvider>
+      <AppShell />
+      <CitationsPanel
+        citations={TIMELINE_DATA.citations}
+        nodes={TIMELINE_DATA.nodes}
+      />
+    </CitationsProvider>
+  );
+}
+
+function AppShell() {
   const today = resolveToday(typeof window !== "undefined" ? window.location.search : "");
   const verification = useMemo(
     () => verifyCumulativeDemand(0, 18, TIMELINE_DATA.demandModel),
     [],
   );
+  const { open } = useCitations();
 
   const counts = TIMELINE_DATA.nodes.reduce(
     (acc, n) => {
@@ -62,6 +80,9 @@ export function App() {
         <p className="theoretical">
           Demand model is theoretical / illustrative — not audited fact (§6).
         </p>
+        <button className="citations-open-btn" onClick={() => open()} type="button">
+          Works Cited ({TIMELINE_DATA.citations.length})
+        </button>
       </section>
     </main>
   );
