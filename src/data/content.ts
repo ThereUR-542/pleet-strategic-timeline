@@ -666,13 +666,13 @@ export const NODES: TimelineNode[] = [
     dateStart: null,
     dateEnd: null,
     thread: "foundational",
-    summary: "First contact via SQ4D email — collaboration in discussion, intentionally TBD.",
+    summary: "First contact with Aiman Hussein (VP of Operations, SQ4D); relationship since formalized via an executed Master Purchase & Services Agreement.",
     bodyMd:
-      "First contact with **Aiman Hussein** via `Aiman@sq4d.com` (**SQ4D Inc.** — confirmed company, Calverton NY; note: primary materials list 'SQ4D Inc.', not 'LLC'). **⚠️ Affiliation note:** public records place Aiman Hussein at Alquist 3D (VP Technology), not SQ4D as VP of Operations — see person node. The collaboration is **intentionally TBD** — this timeline aims to *advance* it. Framed as aspirational / in-discussion; no contract is asserted.",
+      "First contact with **Aiman Hussein** (**VP of Operations, SQ4D, LLC** — a New York limited liability company) via `Aiman@sq4d.com`. Confirmed by Lawrence 2026-06-18 with primary materials: email + calendar correspondence with SQ4D principal **Sal Ferrari**, and the executed **SQ4D ⇄ Pleet Master Purchase & Services Agreement** (plus Amendment No. 1 and the ARC Equipment Lifecycle Report on which Aiman is named VP of Operations). SQ4D is the vendor of the **ARC** autonomous robotic 3D-printing system; the equipment purchase is contracted (acquisition cost $1,289,784.34). Broader deployment milestones remain forward-looking.",
     demandScore: null,
     media: [],
     citationIds: ["cite-sq4d-prnewswire", "cite-sq4d-3dnatives"],
-    confidence: "unconfirmed",
+    confidence: "confirmed",
   },
   {
     id: "n-pleet-formed",
@@ -800,6 +800,10 @@ export const NODES: TimelineNode[] = [
     media: [],
     citationIds: [],
     confidence: "confirmed",
+    // PLE-120/PLE-127 ghost: antecedent of the Savanna thread — predates the
+    // Apr-14 intro and motivated it. Date is correct and must NOT be altered,
+    // flagged, or suppressed (Lawrence's board resolution, PLE-112).
+    isAntecedent: true,
   },
   {
     id: "n-savanna-approval",
@@ -1379,18 +1383,18 @@ export const NODES: TimelineNode[] = [
   {
     id: "n-aiman-hussain",
     type: "person",
-    title: "Aiman Hussein — SQ4D contact (affiliation unverified)",
+    title: "Aiman Hussein — VP of Operations, SQ4D",
     date: null,
     dateStart: null,
     dateEnd: null,
     thread: "foundational",
-    summary: "SQ4D contact — collaboration intentionally TBD / in-discussion. Title + affiliation contradicted by public records (§12).",
+    summary: "VP of Operations at SQ4D, LLC; primary SQ4D contact for the Pleet relationship. Confirmed by Lawrence (2026-06-18).",
     bodyMd:
-      "**Aiman Hussein** — contacted via `Aiman@sq4d.com` (400 David Court, Calverton, NY 11933) on 2026-01-28. **⚠️ Affiliation unverified / contradicted:** public records (LinkedIn, The Org) place Aiman Hussein at **Alquist 3D** as VP of Technology — not at SQ4D as VP of Operations. The email contact is primary; the SQ4D title is not independently corroborated. SQ4D itself is confirmed as a real company (**SQ4D Inc.**, not LLC). Spelling note: public records alternate between 'Hussein' and 'Hussain' — unresolved; board guidance needed (§12).\n\nThe SQ4D/Alquist collaboration is **intentionally TBD** — this timeline aims to *advance* that relationship. Framed as aspirational / in-discussion; no contract is asserted.",
+      "**Aiman Hussein** — **VP of Operations, SQ4D, LLC** (a New York limited liability company; SQ4D manufactures the **ARC** autonomous robotic 3D-printing system). Primary contact for the Pleet relationship via `Aiman@sq4d.com`. Confirmed by Lawrence 2026-06-18 with primary materials: email + calendar correspondence with SQ4D principal **Sal Ferrari**, and the executed SQ4D ⇄ Pleet **Master Purchase & Services Agreement**, on which Aiman is named VP of Operations. The earlier public-record conflation with an 'Aiman Hussein' at Alquist 3D is resolved — this is the SQ4D contact. Spelling resolved: **Hussein**.",
     demandScore: null,
     media: [],
     citationIds: [],
-    confidence: "unconfirmed",
+    confidence: "confirmed",
   },
   {
     id: "n-nick-denison",
@@ -1556,6 +1560,9 @@ export const EDGES: Edge[] = [
   { id: "e-cherokee-demand", from: "n-cherokee-nation-housing", to: "n-equipment-demand", kind: "depends_on", label: "building demand" },
   { id: "e-equipment-demand-manufacturing", from: "n-equipment-demand", to: "n-oklahoma-manufacturing", kind: "depends_on", label: "N(t) printers needed" },
   // Savanna Schools thread sequence
+  // PLE-120 §4 ghost connector: the failed bond MOTIVATED the Apr-14 intro (Adam
+  // Newman reached out *after* the failure). `other` kind → ghost-edge style branch.
+  { id: "e-savanna-bondfail-intro", from: "n-savanna-bond-fail", to: "n-savanna-intro", kind: "other", label: "motivated" },
   { id: "e-savanna-bond-fail-approval", from: "n-savanna-bond-fail", to: "n-savanna-approval", kind: "depends_on", label: "reconnection" },
   { id: "e-savanna-approval-bond-vote", from: "n-savanna-approval", to: "n-savanna-bond-vote", kind: "depends_on", label: null },
   { id: "e-savanna-bond-vote-printing", from: "n-savanna-bond-vote", to: "n-savanna-printing", kind: "depends_on", label: null },
