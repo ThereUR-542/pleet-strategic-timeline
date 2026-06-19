@@ -238,6 +238,102 @@
   pointer-events: none;
 }
 
+/* ── Person node (PLE-155 §2) — a 72px DISC + silhouette, a distinct register
+   from the Event/Project/Concept cards. The React Flow box IS the disc (60px),
+   disc-centered on the layout point; the name/role caption is absolutely
+   positioned BELOW (a disc can't hold a full name). --node-accent = --node-person. */
+.flow-node--person {
+  width: 60px;
+  min-height: 0;
+  height: 60px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--node-accent) 70%, transparent);
+  background: rgba(20, 26, 38, 0.95);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--node-accent) 16%, transparent),
+    0 6px 18px rgba(0, 0, 0, 0.42);
+  overflow: visible;
+  display: grid;
+  place-items: center;
+}
+.flow-node--person:hover {
+  transform: none;
+  border-color: var(--node-accent);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--node-accent) 24%, transparent),
+    0 8px 22px rgba(0, 0, 0, 0.5);
+}
+.flow-node--person .person-glyph {
+  color: var(--node-accent);
+  opacity: 0.62;
+}
+.flow-node--person.flow-node--selected {
+  border-color: var(--node-accent);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--node-accent) 32%, transparent),
+    0 8px 24px rgba(0, 0, 0, 0.55);
+}
+.flow-node--person.flow-node--selected .person-glyph,
+.flow-node--person:hover .person-glyph {
+  opacity: 1;
+}
+/* Unconfirmed person (e.g. Bo Jett) — dotted ring, distinct from the solid ring. */
+.flow-node--person.flow-node--unconfirmed {
+  border-style: dotted;
+}
+.person-caption {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 168px;
+  text-align: center;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.person-caption b {
+  font-size: var(--text-2xs);
+  font-weight: var(--font-weight-semibold);
+  color: #f4f6fb;
+  line-height: 1.15;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.person-caption span {
+  font-size: var(--text-3xs);
+  color: #8b94a7;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 168px;
+}
+.person-today {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 8px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.04em;
+  background: #ffffff;
+  color: #0a0c11;
+  padding: 1px 3px;
+  border-radius: 4px;
+}
+
+/* ── Curvilinear person-relationship edges (PLE-155 §3) — smooth bezier, round
+   cap, NO angular arrowhead (soft dot marker via markerEnd). Quiet at rest;
+   the focused person's web brightens (handled inline via per-edge opacity). */
+.flow-edge--curvilinear .react-flow__edge-path {
+  fill: none;
+}
+.flow-edge--curv-focus .react-flow__edge-path {
+  filter: drop-shadow(0 0 3px rgba(110, 168, 255, 0.55));
+}
+
 /* ── Time-direction ribbon (left→right reading aid, not a literal axis) ────── */
 .flow-timeribbon {
   display: flex;
@@ -541,6 +637,140 @@
   border-radius: var(--radius-chip);
 }
 .detail-panel__conn-rel { color: var(--ek, var(--text-mid)); font-weight: var(--font-weight-semibold); }
+
+/* ── Person modal (PLE-155 §4) ──────────────────────────────────────────────── */
+.detail-panel__role {
+  margin: var(--space-1-5) 0 0;
+  font-size: var(--text-md);
+  color: var(--text-low);
+  line-height: var(--leading-snug);
+}
+
+/* §4.2 relationship graphic — radial mini-graph, curves + clickable chips. */
+.person-graphic {
+  margin: var(--space-1) 0 var(--space-2);
+}
+.person-graphic__scroll {
+  position: relative;
+  max-height: 260px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.person-graphic__svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.person-graphic__chip {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  max-width: 178px;
+  font-size: var(--text-2xs);
+  color: var(--text-mid);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid color-mix(in srgb, var(--ck, #6ea8ff) 38%, rgba(255, 255, 255, 0.1));
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-chip);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+  line-height: var(--leading-none);
+}
+.person-graphic__chip--link {
+  cursor: pointer;
+}
+.person-graphic__chip--link:hover {
+  background: color-mix(in srgb, var(--ck, #6ea8ff) 16%, transparent);
+  color: var(--text-hi);
+}
+.person-graphic__dot {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ck, #6ea8ff);
+}
+.person-graphic__more {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-2xs);
+  color: var(--text-low);
+  font-style: italic;
+}
+
+/* §4.3 interaction history — vertical, strictly chronological. */
+.person-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.person-timeline__row {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: var(--space-2-5);
+}
+.person-timeline__rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  align-items: flex-start;
+  border-left: 2px solid color-mix(in srgb, var(--type, #6ea8ff) 40%, transparent);
+  padding-left: var(--space-2);
+}
+.person-timeline__date {
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-mid);
+  font-weight: var(--font-weight-semibold);
+}
+.person-timeline__chip {
+  font-size: var(--text-3xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6ea8ff;
+  background: rgba(110, 168, 255, 0.12);
+  padding: 1px var(--space-1-5);
+  border-radius: var(--radius-chip);
+}
+.person-timeline__body {
+  min-width: 0;
+}
+.person-timeline__desc {
+  margin: 0 0 var(--space-1-5);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--text-mid);
+}
+.person-timeline__conns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5);
+}
+.person-timeline__conn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  font-size: var(--text-2xs);
+  color: var(--text-mid);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid color-mix(in srgb, var(--ck, #6ea8ff) 34%, rgba(255, 255, 255, 0.1));
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-chip);
+  line-height: var(--leading-none);
+}
+.person-timeline__conn--link {
+  cursor: pointer;
+}
+.person-timeline__conn--link:hover {
+  background: color-mix(in srgb, var(--ck, #6ea8ff) 16%, transparent);
+  color: var(--text-hi);
+}
 
 .detail-panel__cites {
   margin-top: var(--space-4-5);

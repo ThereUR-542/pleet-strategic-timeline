@@ -13,9 +13,21 @@ export function resolveToday(search = ""): IsoDate {
   return new Date().toISOString().split("T")[0];
 }
 
-/** The effective date a node sits at on the axis (end of a range, else date). */
+/**
+ * The effective date a node sits at on the axis (end of a range, else date).
+ * PLE-155 single-anchor model: a `person` node carries no top-level date, so it
+ * is moored to `person.initialAppearanceDate` (first contact). This flows through
+ * both the layout x-position AND the temporal-state chip, and adds NO special
+ * casing of the live Today marker — a person is just another dated point.
+ */
 export function nodeAxisDate(node: TimelineNode): IsoDate | null {
-  return node.date ?? node.dateEnd ?? node.dateStart ?? null;
+  return (
+    node.date ??
+    node.dateEnd ??
+    node.dateStart ??
+    node.person?.initialAppearanceDate ??
+    null
+  );
 }
 
 /** Derive past | today | projected by comparing the node date to `today`. */

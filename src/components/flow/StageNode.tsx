@@ -32,7 +32,33 @@ export interface StageNodeData {
   /** Ghost / antecedent (PLE-120/PLE-127): predates its own thread; renders
    *  faded + dotted + an inline "antecedent" meta chip. Orthogonal to confidence. */
   isAntecedent: boolean;
+  /** PLE-155 person node: short name + role for the caption rendered BELOW the
+   *  disc (the full title overflows a 72px circle). Populated for `type:"person"`. */
+  personName?: string;
+  personRole?: string;
   [key: string]: unknown;
+}
+
+/** Head-and-shoulders silhouette (currentColor) — the color-independent
+ *  "this is a person" cue inside the disc (spec §2.1, WCAG shape-not-just-hue). */
+function PersonGlyph() {
+  return (
+    <svg
+      className="person-glyph"
+      viewBox="0 0 24 24"
+      width={30}
+      height={30}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.7}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="8.5" r="3.6" />
+      <path d="M5.5 19.5c0-3.7 2.9-6.2 6.5-6.2s6.5 2.5 6.5 6.2" />
+    </svg>
+  );
 }
 
 function StageNodeImpl({ data, selected }: NodeProps) {
@@ -42,8 +68,10 @@ function StageNodeImpl({ data, selected }: NodeProps) {
     .filter(Boolean)
     .join(" · ");
 
+  const isPerson = d.type === "person";
   const classes = [
     "flow-node",
+    isPerson ? "flow-node--person" : "",
     selected ? "flow-node--selected" : "",
     d.dimmed ? "flow-node--dimmed" : "",
     d.confidence === "unconfirmed" ? "flow-node--unconfirmed" : "",
@@ -53,6 +81,35 @@ function StageNodeImpl({ data, selected }: NodeProps) {
   ]
     .filter(Boolean)
     .join(" ");
+
+  // ── Person node (PLE-155 §2): a 72px DISC + silhouette, name/role caption
+  //    BELOW the disc — a distinct register from the Event/Project/Concept cards.
+  //    Side handles only (left/right) so curvilinear relationship edges leave the
+  //    disc cleanly; the disc is positioned disc-centered in FlowCanvas. ──
+  if (isPerson) {
+    return (
+      <div
+        className={classes}
+        style={{ ["--node-accent" as string]: color }}
+        title={d.title}
+      >
+        <Handle id="tl" type="target" position={Position.Left} className="flow-handle" />
+        <Handle id="sl" type="source" position={Position.Left} className="flow-handle" />
+        <Handle id="tr" type="target" position={Position.Right} className="flow-handle" />
+        <Handle id="sr" type="source" position={Position.Right} className="flow-handle" />
+        <span className="person-disc" aria-hidden="true">
+          <PersonGlyph />
+        </span>
+        <div className="person-caption">
+          <b>{d.personName || d.title}</b>
+          {d.personRole && <span>{d.personRole}</span>}
+        </div>
+        {d.isToday && (
+          <span className="person-today" title="Today">TODAY</span>
+        )}
+      </div>
+    );
+  }
 
   // Octopus routing (PLE-121 §3): every node carries source+target handles on
   // left & right; `concept` hubs add top & bottom so converging tentacles can

@@ -163,6 +163,7 @@ function TimelineApp({ data, lanes }: { data: TimelineData; lanes: Lane[] }) {
               nodes={data.nodes}
               today={today}
               onClose={() => setSelectedId(null)}
+              onNavigate={(id) => setSelectedId(id)}
             />
           </>
         )}
@@ -256,6 +257,7 @@ function TimelineApp({ data, lanes }: { data: TimelineData; lanes: Lane[] }) {
                 nodes={data.nodes}
                 today={today}
                 onClose={() => setSelectedId(null)}
+                onNavigate={(id) => setSelectedId(id)}
               />
             </>
           )}

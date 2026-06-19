@@ -11,12 +11,19 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import type { CSSProperties } from "react";
-import type { Edge, IsoDate, TimelineNode, Citation } from "../../data/types";
+import type {
+  Edge,
+  IsoDate,
+  PersonProfile,
+  TimelineNode,
+  Citation,
+} from "../../data/types";
 import { renderMla } from "../../lib/mla";
 import { externalLinkProps } from "../../lib/links";
 import { renderInline } from "../../lib/inlineMarkdown";
 import { temporalStateFor } from "../../lib/temporal";
 import { MediaEmbed } from "../modal/MediaEmbed";
+import type { PersonConnection } from "./personGraph";
 import {
   NODE_COLOR,
   NODE_TYPE_LABEL,
@@ -35,6 +42,8 @@ interface Props {
   /** "Today" anchor for the temporal-state chip (§4.7). */
   today: IsoDate;
   onClose: () => void;
+  /** PLE-155: jump to another node (relationship-graphic / timeline chips). */
+  onNavigate?: (id: string) => void;
 }
 
 const MONTHS = [
@@ -85,8 +94,212 @@ function splitFact(fact: string): { key: string | null; value: string } {
   return { key: fact.slice(0, i), value: fact.slice(i + 2) };
 }
 
-export function DetailPanel({ node, citations, edges, nodes, today, onClose }: Props) {
+// ── PLE-155 Person modal ──────────────────────────────────────────────────────
+
+/** All unique connections across a person's relationships (deduped, node-resolved
+ *  when possible) for the relationship graphic. Node-backed entries are clickable. */
+function resolveConnections(
+  person: PersonProfile,
+  byId: Map<string, TimelineNode>,
+): PersonConnection[] {
+  const out: PersonConnection[] = [];
+  const seen = new Set<string>();
+  for (const rel of person.relationships) {
+    rel.connectedNodeIds.forEach((cid) => {
+      if (seen.has(cid)) return;
+      seen.add(cid);
+      const cn = byId.get(cid);
+      out.push({
+        id: cn ? cid : null,
+        title: cn ? cn.title : cid,
+        color: cn ? NODE_COLOR[cn.type] ?? "#6ea8ff" : "#6ea8ff",
+      });
+    });
+    // Titles beyond the resolved ids are labels with no node of their own.
+    rel.connectedNodeTitles.slice(rel.connectedNodeIds.length).forEach((t) => {
+      if (seen.has(t)) return;
+      seen.add(t);
+      out.push({ id: null, title: t, color: "#6b7280" });
+    });
+  }
+  return out;
+}
+
+const GRAPHIC_MAX = 12;
+
+/**
+ * In-modal relationship graphic (§4.2): a radial mini-graph with the person disc
+ * anchored at left and every connection on a CURVILINEAR bezier radiating out —
+ * the same visual language as the canvas. Node-backed chips navigate on click.
+ * Curve strokes use literal hex (SVG attrs don't resolve CSS vars — spec GOTCHA).
+ */
+function PersonRelationshipGraphic({
+  name,
+  connections,
+  onNavigate,
+}: {
+  name: string;
+  connections: PersonConnection[];
+  onNavigate?: (id: string) => void;
+}) {
+  const shown = connections.slice(0, GRAPHIC_MAX);
+  const overflow = connections.length - shown.length;
+  const rowStep = 34;
+  const padY = 18;
+  const H = Math.max(150, padY * 2 + shown.length * rowStep);
+  const W = 340;
+  const discCx = 38;
+  const discCy = H / 2;
+  const endX = 150;
+  const yFor = (i: number) => padY + i * rowStep + rowStep / 2;
+
+  return (
+    <div className="person-graphic" role="group" aria-label={`${name} — relationship graphic`}>
+      <div className="person-graphic__scroll" style={{ height: H }}>
+        <svg
+          className="person-graphic__svg"
+          width={W}
+          height={H}
+          viewBox={`0 0 ${W} ${H}`}
+          aria-hidden="true"
+        >
+          {shown.map((_c, i) => {
+            const y = yFor(i);
+            return (
+              <path
+                key={i}
+                d={`M ${discCx} ${discCy} C ${discCx + 64} ${discCy}, ${endX - 56} ${y}, ${endX} ${y}`}
+                fill="none"
+                stroke="#6ea8ff"
+                strokeWidth={1.4}
+                strokeOpacity={0.55}
+                strokeLinecap="round"
+              />
+            );
+          })}
+          {shown.map((_c, i) => (
+            <circle key={`e${i}`} cx={endX} cy={yFor(i)} r={3} fill="#6ea8ff" />
+          ))}
+          {/* anchor disc */}
+          <circle cx={discCx} cy={discCy} r={18} fill="rgba(20,26,38,0.95)" stroke="#6ea8ff" strokeWidth={2} />
+          <circle cx={discCx} cy={discCy - 4} r={4} fill="#6ea8ff" fillOpacity={0.7} />
+          <path
+            d={`M ${discCx - 7} ${discCy + 8} a 7 7 0 0 1 14 0`}
+            fill="#6ea8ff"
+            fillOpacity={0.7}
+          />
+        </svg>
+        {shown.map((c, i) => {
+          const top = yFor(i) - 13;
+          const clickable = c.id != null && onNavigate;
+          const className = `person-graphic__chip${clickable ? " person-graphic__chip--link" : ""}`;
+          const style = { left: endX + 10, top, "--ck": c.color } as CSSProperties;
+          return clickable ? (
+            <button key={i} className={className} style={style} onClick={() => onNavigate!(c.id!)}>
+              <span className="person-graphic__dot" aria-hidden="true" />
+              {c.title}
+            </button>
+          ) : (
+            <span key={i} className={className} style={style}>
+              <span className="person-graphic__dot" aria-hidden="true" />
+              {c.title}
+            </span>
+          );
+        })}
+      </div>
+      {overflow > 0 && (
+        <p className="person-graphic__more">+{overflow} more connection{overflow > 1 ? "s" : ""} — see timeline below</p>
+      )}
+    </div>
+  );
+}
+
+/** Chronological interaction history (§4.3): dated rows (undated last), each with
+ *  a date badge, optional Projected chip, description, and clickable node chips. */
+function PersonTimeline({
+  person,
+  byId,
+  today,
+  onNavigate,
+}: {
+  person: PersonProfile;
+  byId: Map<string, TimelineNode>;
+  today: IsoDate;
+  onNavigate?: (id: string) => void;
+}) {
+  const rows = useMemo(() => {
+    return [...person.relationships].sort((a, b) => {
+      if (a.date && b.date) return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+      if (a.date) return -1;
+      if (b.date) return 1;
+      return 0;
+    });
+  }, [person.relationships]);
+
+  return (
+    <ol className="person-timeline">
+      {rows.map((rel, i) => {
+        const projected = rel.date != null && rel.date > today;
+        return (
+          <li key={i} className="person-timeline__row">
+            <div className="person-timeline__rail">
+              <span className="person-timeline__date">
+                {rel.date ? formatDate(rel.date) : "Undated"}
+              </span>
+              {(rel.scheduled || projected) && (
+                <span className="person-timeline__chip">Projected</span>
+              )}
+            </div>
+            <div className="person-timeline__body">
+              <p className="person-timeline__desc">{rel.description}</p>
+              <div className="person-timeline__conns">
+                {rel.connectedNodeIds.map((cid, j) => {
+                  const cn = byId.get(cid);
+                  if (!cn) return null;
+                  const color = NODE_COLOR[cn.type] ?? "#6ea8ff";
+                  return onNavigate ? (
+                    <button
+                      key={j}
+                      className="person-timeline__conn person-timeline__conn--link"
+                      style={{ "--ck": color } as CSSProperties}
+                      onClick={() => onNavigate(cid)}
+                    >
+                      <span className="person-graphic__dot" aria-hidden="true" />
+                      {cn.title}
+                    </button>
+                  ) : (
+                    <span
+                      key={j}
+                      className="person-timeline__conn"
+                      style={{ "--ck": color } as CSSProperties}
+                    >
+                      <span className="person-graphic__dot" aria-hidden="true" />
+                      {cn.title}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+export function DetailPanel({ node, citations, edges, nodes, today, onClose, onNavigate }: Props) {
   const citesRef = useRef<HTMLDivElement>(null);
+  const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
+  const person = node.person ?? null;
+  const personConnections = useMemo(
+    () => (person ? resolveConnections(person, byId) : []),
+    [person, byId],
+  );
+  const personWhen = person
+    ? person.initialAppearanceDate
+      ? `First appearance · ${formatDate(person.initialAppearanceDate)}`
+      : "First appearance · not yet dated"
+    : null;
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -150,9 +363,14 @@ export function DetailPanel({ node, citations, edges, nodes, today, onClose }: P
           <span className="detail-panel__tag-dot" aria-hidden="true" />
           {tagText}
         </span>
-        <h2 className="detail-panel__title">{node.title}</h2>
+        <h2 className="detail-panel__title">{person ? person.name : node.title}</h2>
+        {person && person.role && (
+          <p className="detail-panel__role">{person.role}</p>
+        )}
         <p className="detail-panel__meta">
-          {when && <span className="detail-panel__date">{when}</span>}
+          {(person ? personWhen : when) && (
+            <span className="detail-panel__date">{person ? personWhen : when}</span>
+          )}
           <span className={`detail-panel__state detail-panel__state--${state}`}>
             {STATE_LABEL[state]}
           </span>
@@ -168,10 +386,44 @@ export function DetailPanel({ node, citations, edges, nodes, today, onClose }: P
       </header>
 
       <div className="detail-panel__scroll">
+        {/* PLE-155 §4.4: carried identity / market-signal note (Amy×Amy
+            unconfirmed-same, bank-financing signal) — honest provenance flag. */}
+        {person?.note && (
+          <div className="detail-panel__note" role="note">
+            {person.note}
+          </div>
+        )}
+
         {node.confidence === "unconfirmed" && (
           <div className="detail-panel__note" role="note">
             Pending verification (§12) — treat as illustrative
           </div>
+        )}
+
+        {/* PLE-155 §4.2: the hero element — in-modal curvilinear relationship
+            graphic of ALL connections radiating from the single anchor. */}
+        {person && personConnections.length > 0 && (
+          <>
+            <p className="detail-panel__section-label">Relationship graphic</p>
+            <PersonRelationshipGraphic
+              name={person.name}
+              connections={personConnections}
+              onNavigate={onNavigate}
+            />
+          </>
+        )}
+
+        {/* PLE-155 §4.3: full chronological dated interaction history. */}
+        {person && person.relationships.length > 0 && (
+          <>
+            <p className="detail-panel__section-label">Interaction history</p>
+            <PersonTimeline
+              person={person}
+              byId={byId}
+              today={today}
+              onNavigate={onNavigate}
+            />
+          </>
         )}
 
         {node.demandScore !== null && (
@@ -205,7 +457,7 @@ export function DetailPanel({ node, citations, edges, nodes, today, onClose }: P
           </>
         )}
 
-        {connections.length > 0 && (
+        {!person && connections.length > 0 && (
           <>
             <p className="detail-panel__section-label">Connections</p>
             <div className="detail-panel__conns">

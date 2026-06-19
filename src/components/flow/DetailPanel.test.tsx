@@ -119,3 +119,96 @@ describe("DetailPanel — PLE-102 redesigned anatomy", () => {
     expect(foot).toContain("Works Cited (1)");
   });
 });
+
+// ── PLE-155 person modal variant ─────────────────────────────────────────────
+const PERSON: TimelineNode = {
+  id: "n-bo",
+  type: "person",
+  title: "Bo Jett — Senior VP, IBC Bank",
+  date: null,
+  dateStart: null,
+  dateEnd: null,
+  thread: "financial_interest",
+  summary: "Lender.",
+  bodyMd: "Bo Jett body.",
+  demandScore: null,
+  media: [],
+  citationIds: [],
+  confidence: "unconfirmed",
+  person: {
+    name: "Bo Jett",
+    role: "Senior VP, Commercial Lending, IBC Bank",
+    initialAppearanceDate: "2026-04-23",
+    threads: ["financial_interest"],
+    modalGraphic: null,
+    note: "A bank's willingness to finance a 3D-printed residence is an independent market signal.",
+    relationships: [
+      { date: "2026-04-23", scheduled: false, description: "Introduced at Meet Bo & LG.", connectedNodeIds: ["n-meet"], connectedNodeTitles: ["Meet Bo & LG"] },
+      { date: null, scheduled: false, description: "Financing Brady's home.", connectedNodeIds: [], connectedNodeTitles: ["Brady's Home"] },
+    ],
+  },
+};
+const PEER: TimelineNode = { ...PERSON, id: "n-meet", type: "event", title: "Meet Bo & LG", person: undefined, confidence: "confirmed" };
+
+describe("DetailPanel — PLE-155 person variant", () => {
+  let container: HTMLDivElement;
+  let root: ReactDOM.Root;
+  const navigated: string[] = [];
+
+  beforeEach(async () => {
+    navigated.length = 0;
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = ReactDOM.createRoot(container);
+    root.render(
+      <DetailPanel
+        node={PERSON}
+        citations={[]}
+        edges={[]}
+        nodes={[PERSON, PEER]}
+        today="2026-06-19"
+        onClose={() => {}}
+        onNavigate={(id) => navigated.push(id)}
+      />,
+    );
+    await new Promise((r) => setTimeout(r, 30));
+  });
+  afterEach(() => {
+    if (root) root.unmount();
+    if (container.parentNode) document.body.removeChild(container);
+  });
+
+  it("shows name, role caption, and first-appearance anchor date", () => {
+    expect(container.querySelector(".detail-panel__title")!.textContent).toBe("Bo Jett");
+    expect(container.querySelector(".detail-panel__role")!.textContent).toContain("IBC Bank");
+    expect(container.querySelector(".detail-panel__meta")!.textContent).toContain("First appearance");
+    expect(container.querySelector(".detail-panel__meta")!.textContent).toContain("2026");
+  });
+
+  it("surfaces the carried identity/market-signal note", () => {
+    const note = container.querySelector(".detail-panel__note")!.textContent ?? "";
+    expect(note).toContain("market signal");
+  });
+
+  it("renders the relationship graphic and a chronological interaction history", () => {
+    expect(container.querySelector(".person-graphic")).not.toBeNull();
+    const rows = container.querySelectorAll(".person-timeline__row");
+    expect(rows.length).toBe(2);
+    // dated row sorts before the undated one
+    expect(rows[0].textContent).toContain("Apr 23, 2026");
+    expect(rows[1].textContent).toContain("Undated");
+  });
+
+  it("navigates when a node-backed connection chip is clicked", () => {
+    const chip = container.querySelector(".person-graphic__chip--link") as HTMLButtonElement;
+    expect(chip).not.toBeNull();
+    chip.click();
+    expect(navigated).toContain("n-meet");
+  });
+
+  it("does not render the generic Connections section for a person", () => {
+    const labels = [...container.querySelectorAll(".detail-panel__section-label")].map((n) => n.textContent);
+    expect(labels).not.toContain("Connections");
+    expect(labels).toContain("Relationship graphic");
+  });
+});

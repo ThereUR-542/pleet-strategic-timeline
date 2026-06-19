@@ -41,6 +41,7 @@ import {
   type SwimBand,
 } from "./layout";
 import { StageNode, type StageNodeData } from "./StageNode";
+import { buildPersonRelationshipEdges, isPersonEdge } from "./personGraph";
 import {
   NODE_COLOR,
   NODE_TYPE_LABEL,
@@ -52,6 +53,15 @@ const FOCAL_ID = "n-mayor-nichols";
 const NODE_TYPES = { stage: StageNode };
 /** A `concept` node with this many converging edges renders as an octopus hub. */
 const HUB_MIN_INDEGREE = 3;
+/** PLE-155: person node disc diameter — the React Flow node box for a person is
+ *  the disc itself (caption is absolutely positioned below), so edges attach at
+ *  the disc rim. Disc-centered at the layout (cx, cy). */
+const PERSON_DISC = 60;
+/** Short display name for a person caption — profile name, else title before the
+ *  em/en/hyphen separator ("Mayor Monroe Nichols — 41st Mayor" → "Mayor …"). */
+function shortPersonName(title: string): string {
+  return title.split(/\s[—–-]\s/)[0].trim();
+}
 
 // PLE-97: the ≤760px breakpoint, mirrored exactly in flow.css's media query.
 const MOBILE_BP = 760;
@@ -438,6 +448,10 @@ function FlowCanvasInner({
 }: Props) {
   const { setCenter, fitView } = useReactFlow();
   const mobile = useIsMobile();
+  // PLE-155 §2.3: the person relationship layer is QUIET at rest and brightens
+  // when the person disc is hovered or selected (progressive disclosure). Hover
+  // wins over selection so a quick scan lights up each web in turn.
+  const [hoverId, setHoverId] = useState<string | null>(null);
 
   // Z-plane 3D depth (PLE-115 §10): opt-in MODE over a flat default (§10.1).
   // `zMode` off ⇒ exact 2D; `pose` holds the clamped tilt while on.
@@ -465,6 +479,21 @@ function FlowCanvasInner({
     [layout],
   );
 
+  // PLE-155: the structural connection edges + the synthesized person-relationship
+  // edges (single-anchor → connected node). Synthesized edges dedup against the
+  // structural set, so a relationship already in connections.yaml draws once.
+  const allEdges = useMemo(
+    () => [...data.edges, ...buildPersonRelationshipEdges(data.nodes, data.edges)],
+    [data.edges, data.nodes],
+  );
+
+  // The person whose web is currently lit (hover beats selection); null unless a
+  // person node is focused. Drives the §2.3 brighten of that person's edges.
+  const focusPersonId = useMemo(() => {
+    const id = hoverId ?? selectedId;
+    return id && nodeById.get(id)?.type === "person" ? id : null;
+  }, [hoverId, selectedId, nodeById]);
+
   // Octopus hubs: `concept` nodes that ≥3 edges converge on (in-degree).
   const hubIds = useMemo(() => {
     const inDeg = new Map<string, number>();
@@ -485,6 +514,7 @@ function FlowCanvasInner({
     return layout.nodes.map((p) => {
       const n = nodeById.get(p.id)!;
       const dimmed = matchedNodeIds != null && !matchedNodeIds.has(p.id);
+      const isPerson = n.type === "person";
       const nodeData: StageNodeData = {
         id: n.id,
         title: n.title,
@@ -500,11 +530,18 @@ function FlowCanvasInner({
         zLayer: threadZLayer(n.thread, hubIds.has(n.id)),
         dimmed,
         isAntecedent: n.isAntecedent === true,
+        personName: isPerson ? n.person?.name ?? shortPersonName(n.title) : undefined,
+        personRole: isPerson ? n.person?.role ?? "" : undefined,
       };
+      // Person nodes render as a disc whose React Flow box IS the disc, so we
+      // place it disc-centered on the layout (cx, cy); cards keep their top-left.
+      const position = isPerson
+        ? { x: p.cx - PERSON_DISC / 2, y: p.cy - PERSON_DISC / 2 }
+        : { x: p.x, y: p.y };
       return {
         id: p.id,
         type: "stage",
-        position: { x: p.x, y: p.y },
+        position,
         data: nodeData as unknown as Record<string, unknown>,
         selected: p.id === selectedId,
         draggable: false,
@@ -514,7 +551,7 @@ function FlowCanvasInner({
   }, [layout, nodeById, matchedNodeIds, today, selectedId, hubIds]);
 
   const rfEdges: RFEdge[] = useMemo(() => {
-    return data.edges
+    return allEdges
       .filter((e) => posById.has(e.from) && posById.has(e.to))
       .map((e) => {
         const color = EDGE_COLOR[e.kind] ?? "#6b7280";
@@ -529,6 +566,41 @@ function FlowCanvasInner({
           hubIds.has(e.from),
           hubIds.has(e.to),
         );
+
+        // PLE-155 §3: any edge incident to a PERSON node routes CURVILINEAR — a
+        // smooth cubic bezier (no orthogonal segments, no angular arrowhead). It
+        // is quiet at rest (§2.3) and brightens when its person's web is focused.
+        if (isPersonEdge(e, nodeById)) {
+          const synthetic = e.id.startsWith("pe-");
+          const stroke = synthetic ? "#6ea8ff" : color; // §3: plain relation = --node-person
+          const focused =
+            focusPersonId != null &&
+            (e.from === focusPersonId || e.to === focusPersonId);
+          const op = dim ? 0.04 : focused ? 0.95 : 0.3;
+          return {
+            id: e.id,
+            source: e.from,
+            target: e.to,
+            sourceHandle,
+            targetHandle,
+            label: focused && e.label ? e.label : undefined,
+            type: "default", // React Flow bezier
+            pathOptions: { curvature: 0.4 },
+            // soft round dot terminator (no ArrowClosed vertex), §3.
+            markerEnd: "url(#person-dot)",
+            className: `flow-edge--curvilinear${focused ? " flow-edge--curv-focus" : ""}`,
+            style: {
+              stroke,
+              strokeWidth: focused ? 2 : 1.3,
+              strokeLinecap: "round" as const,
+              opacity: op,
+            },
+            labelStyle: { fill: "#cdd5e4", fontSize: 9.5, fontWeight: 500 },
+            labelBgStyle: { fill: "#11141b", fillOpacity: 0.82 },
+            labelBgPadding: [3, 2] as [number, number],
+            labelBgBorderRadius: 4,
+          };
+        }
         // PLE-120 §4 ghost connector: an `other` edge OUT OF an antecedent node
         // (fail → intro "motivated") renders as a soft violet dotted line with an
         // open chevron arrowhead — matching the ghost register, softer than depends_on.
@@ -579,7 +651,7 @@ function FlowCanvasInner({
           labelBgBorderRadius: 4,
         };
       });
-  }, [data.edges, posById, matchedNodeIds, hubIds, nodeById]);
+  }, [allEdges, posById, matchedNodeIds, hubIds, nodeById, focusPersonId]);
 
   const stems = useMemo(
     () =>
@@ -598,6 +670,13 @@ function FlowCanvasInner({
     },
     [onNodeSelect],
   );
+
+  // PLE-155 §2.3: hovering a person disc lights up that person's relationship web.
+  const handleNodeEnter: NodeMouseHandler = useCallback(
+    (_evt, node) => setHoverId(node.id),
+    [],
+  );
+  const handleNodeLeave: NodeMouseHandler = useCallback(() => setHoverId(null), []);
 
   useEffect(() => {
     if (!focusNodeId || mobile) return;
@@ -641,6 +720,8 @@ function FlowCanvasInner({
       edges={rfEdges}
       nodeTypes={NODE_TYPES}
       onNodeClick={handleNodeClick}
+      onNodeMouseEnter={handleNodeEnter}
+      onNodeMouseLeave={handleNodeLeave}
       onPaneClick={() => onNodeSelect("")}
       onInit={handleInit}
       fitViewOptions={{ padding: 0.1 }}
@@ -659,6 +740,23 @@ function FlowCanvasInner({
           : undefined
       }
     >
+      {/* PLE-155 §3: soft round dot terminator for curvilinear person edges —
+          referenced by markerEnd="url(#person-dot)". Literal hex (SVG marker
+          attrs don't resolve CSS vars — the spec GOTCHA). */}
+      <svg width={0} height={0} style={{ position: "absolute" }} aria-hidden="true">
+        <defs>
+          <marker
+            id="person-dot"
+            markerWidth={7}
+            markerHeight={7}
+            refX={3.5}
+            refY={3.5}
+            orient="auto"
+          >
+            <circle cx={3.5} cy={3.5} r={2.6} fill="#6ea8ff" />
+          </marker>
+        </defs>
+      </svg>
       <Background variant={BackgroundVariant.Dots} gap={30} size={1} color="#20262f" />
       {/* Substrate (tilts in 3D, §10.6): horizontal swim-lane band strips. */}
       <ViewportPortal>
