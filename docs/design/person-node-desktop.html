@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>PLE-153 — Person node + modal (desktop 1440×900)</title>
+<link rel="stylesheet" href="person-node.css" />
+<style>
+  body { padding:24px; width:1440px; }
+  .stage { display:flex; width:1440px; height:812px; border:1px solid rgba(255,255,255,.12);
+    border-radius:10px; overflow:hidden; }
+  .stage .canvas { flex:1 1 auto; }
+  .stage .detail { flex:0 0 400px; width:400px; }
+  .relgraphic { height:218px; }
+</style>
+</head>
+<body>
+<p class="frame-label">PLE-153 · <b>Person node + modal</b> — desktop 1440×900 · Kayla Lee selected (edges bright); Brady Deaton at rest (edges quiet). All values = real tokens.</p>
+<div class="stage">
+
+  <!-- ───────── CANVAS ───────── -->
+  <div class="canvas">
+    <!-- swim-lane bands -->
+    <div class="band" style="top:165px"></div><div class="band-label" style="top:140px">Foundational</div>
+    <div class="band" style="top:330px"></div><div class="band-label" style="top:305px">Major Projects</div>
+    <div class="band" style="top:500px"></div><div class="band-label" style="top:475px">Strategic Relationships</div>
+    <div class="band" style="top:650px"></div><div class="band-label" style="top:625px">Financial Interest</div>
+
+    <!-- axis + ticks + today -->
+    <div class="axis"></div>
+    <div class="tick" style="left:150px">Jan</div>
+    <div class="tick" style="left:320px">Feb</div>
+    <div class="tick" style="left:460px">Mar</div>
+    <div class="tick" style="left:600px">Apr</div>
+    <div class="tick" style="left:760px">May</div>
+    <div class="tick" style="left:905px">Jun</div>
+    <div class="today" style="left:892px"><b>Today · 19 Jun</b></div>
+
+    <!-- edges (under nodes) — cubic bezier, no orthogonal joints -->
+    <svg class="edges" width="1040" height="812" viewBox="0 0 1040 812" preserveAspectRatio="none">
+      <defs>
+        <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <!-- Brady's relationship layer — quiet at rest (spec §2.3) -->
+      <g stroke="#6ea8ff" fill="none" stroke-width="1.8" opacity=".40" stroke-linecap="round">
+        <path d="M482,632 C 620,560 740,520 845,506" />
+        <path d="M468,632 C 540,520 600,400 640,372" />
+      </g>
+      <!-- Kayla SELECTED — her edges bright; colored by EdgeKind -->
+      <g fill="none" stroke-width="2.6" stroke-linecap="round" filter="url(#glow)">
+        <path d="M168,150 C 210,118 220,150 246,160" stroke="#4ade80" />
+        <path d="M158,182 C 230,240 280,330 348,330" stroke="#6ea8ff" />
+        <path d="M165,178 C 350,250 420,360 580,360" stroke="#22d3ee" />
+        <path d="M168,172 C 400,205 560,300 736,300" stroke="#6ea8ff" />
+        <path d="M160,185 C 380,360 600,500 822,500" stroke="#a78bfa" stroke-width="3" />
+      </g>
+      <!-- soft dot terminators (no hard arrowheads) -->
+      <g fill="#6ea8ff">
+        <circle cx="246" cy="160" r="3"/><circle cx="348" cy="330" r="3"/>
+        <circle cx="580" cy="360" r="3"/><circle cx="736" cy="300" r="3"/><circle cx="822" cy="500" r="3"/>
+      </g>
+    </svg>
+
+    <!-- connected rectangle nodes (existing language) — focal ring because Kayla selected -->
+    <div class="rnode focal" style="left:320px;top:165px;--accent:var(--node-project)">
+      <span class="bar"></span><div class="k">Project</div><div class="t">Pleet LLC formation</div><div class="d">2 Feb 2026</div></div>
+    <div class="rnode focal" style="left:430px;top:330px;--accent:var(--node-event)">
+      <span class="bar"></span><div class="k">Event</div><div class="t">Tulsa Home &amp; Garden Show</div><div class="d">5–8 Mar 2026</div></div>
+    <div class="rnode focal" style="left:660px;top:360px;--accent:var(--node-event)">
+      <span class="bar"></span><div class="k">Event</div><div class="t">Savanna board meeting</div><div class="d">1 Jun 2026</div></div>
+    <div class="rnode focal" style="left:815px;top:300px;--accent:var(--node-project)">
+      <span class="bar"></span><div class="k">Project</div><div class="t">Clear Creek Butterfly</div><div class="d">15 Jun 2026</div></div>
+    <div class="rnode hub focal" style="left:905px;top:500px;--accent:var(--node-concept)">
+      <div class="k" style="color:var(--node-concept)">Concept hub</div><div class="t">Mayor Monroe Nichols</div><div class="d">23 Jun 2026 · projected</div></div>
+
+    <!-- PERSON nodes — circle + silhouette -->
+    <!-- Kayla (selected) -->
+    <div class="pnode sel" style="left:150px;top:165px">
+      <div class="disc"><svg class="glyph" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4.4 0-8 2.6-8 5.8V21h16v-1.2c0-3.2-3.6-5.8-8-5.8z"/></svg></div>
+      <div class="cap"><b>Kayla Lee, NCARB</b><span>Lee Simon Design</span></div></div>
+    <!-- Brady (at rest) -->
+    <div class="pnode" style="left:470px;top:650px">
+      <div class="disc"><svg class="glyph" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4.4 0-8 2.6-8 5.8V21h16v-1.2c0-3.2-3.6-5.8-8-5.8z"/></svg></div>
+      <div class="cap"><b>Brady Deaton</b><span>Rise Up Properties</span></div></div>
+
+    <div class="legend">
+      <div class="row"><span class="disc"></span> Person — anchored once</div>
+      <div class="row"><span class="sw curve"></span> Curvilinear relationship</div>
+      <div class="row"><span class="sw" style="background:var(--node-person)"></span> Bright = focused person</div>
+      <div class="row"><span class="sw" style="background:var(--text-low)"></span> Quiet = at rest</div>
+    </div>
+  </div>
+
+  <!-- ───────── PERSON MODAL (DetailPanel person variant) ───────── -->
+  <aside class="detail">
+    <div class="detail__head">
+      <span class="tag"><span class="dot"></span> Person</span>
+      <button class="close">✕</button>
+      <h2 class="detail__title">Kayla Lee, NCARB</h2>
+      <p class="detail__role">Founder &amp; Architect · Lee Simon Design (Tulsa, OK)</p>
+      <div class="detail__meta">
+        <span class="thread-chip" style="--c:var(--thread-foundational)">Foundational</span>
+        <span class="thread-chip" style="--c:var(--thread-major-projects)">Major Projects</span>
+        <span>·</span><span>First appearance · 20 Jan 2026</span>
+        <span class="state-chip past">Past</span>
+      </div>
+    </div>
+
+    <div class="detail__body">
+      <div class="sect-h">Relationship graphic — all connections</div>
+      <div class="relgraphic">
+        <svg width="358" height="218" viewBox="0 0 358 218" preserveAspectRatio="none">
+          <g fill="none" stroke-width="1.8" stroke-linecap="round">
+            <path d="M92,96 C 110,60 120,40 130,30" stroke="#c084fc" />
+            <path d="M96,100 C 150,72 190,48 222,40" stroke="#4ade80" />
+            <path d="M98,106 C 170,92 220,84 268,80" stroke="#6ea8ff" />
+            <path d="M98,114 C 170,124 220,130 268,130" stroke="#22d3ee" />
+            <path d="M92,120 C 150,150 190,168 226,174" stroke="#6ea8ff" />
+            <path d="M82,124 C 100,162 116,186 130,196" stroke="#a78bfa" stroke-width="2.2" />
+          </g>
+          <g fill="#d7dde9">
+            <circle cx="130" cy="30" r="2.4"/><circle cx="222" cy="40" r="2.4"/><circle cx="268" cy="80" r="2.4"/>
+            <circle cx="268" cy="130" r="2.4"/><circle cx="226" cy="174" r="2.4"/><circle cx="130" cy="196" r="2.4"/>
+          </g>
+        </svg>
+        <div class="rg-disc" style="left:66px;top:109px">
+          <svg class="glyph" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4.4 0-8 2.6-8 5.8V21h16v-1.2c0-3.2-3.6-5.8-8-5.8z"/></svg>
+          <span class="lbl">Kayla Lee</span></div>
+        <span class="rg-chip" style="left:150px;top:26px;--c:var(--node-concept)"><span class="d"></span><span class="t">White Wolf / Pleet TV</span></span>
+        <span class="rg-chip" style="left:255px;top:38px;--c:var(--node-project)"><span class="d"></span><span class="t">Pleet LLC formation</span></span>
+        <span class="rg-chip" style="left:300px;top:80px;--c:var(--node-event)"><span class="d"></span><span class="t">Home &amp; Garden Show</span></span>
+        <span class="rg-chip" style="left:300px;top:130px;--c:var(--node-event)"><span class="d"></span><span class="t">Savanna Schools</span></span>
+        <span class="rg-chip" style="left:252px;top:176px;--c:var(--node-project)"><span class="d"></span><span class="t">Clear Creek Butterfly</span></span>
+        <span class="rg-chip" style="left:140px;top:200px;--c:var(--node-concept)"><span class="d"></span><span class="t">Mayor Nichols</span></span>
+        <span class="rg-more">+2 more</span>
+      </div>
+
+      <div class="sect-h">Interaction history — chronological</div>
+      <div class="timeline">
+        <div class="ti"><span class="dot"></span><div class="date"><b>20 Jan</b><br>2026</div>
+          <div class="body">First meeting with Lawrence Gene — initial discussion of 3D-printed homes. Conceptual origin of Pleet LLC.
+            <div class="conns"><span class="cnode" style="--c:var(--node-concept)"><span class="d"></span>Pleet origin</span></div></div></div>
+        <div class="ti"><span class="dot"></span><div class="date"><b>2 Feb</b><br>2026</div>
+          <div class="body">Co-filed / formed <b>Pleet LLC</b> with Lawrence Gene.
+            <div class="conns"><span class="cnode" style="--c:var(--node-project)"><span class="d"></span>Pleet LLC formation</span></div></div></div>
+        <div class="ti"><span class="dot"></span><div class="date"><b>5–8 Mar</b><br>2026</div>
+          <div class="body">Worked the Pleet LLC booth at the <b>Tulsa Home &amp; Garden Show</b>.
+            <div class="conns"><span class="cnode" style="--c:var(--node-event)"><span class="d"></span>Home &amp; Garden Show</span></div></div></div>
+        <div class="ti"><span class="dot"></span><div class="date"><b>1 Jun</b><br>2026</div>
+          <div class="body">Presented 3D-printing concepts at the <b>Savanna Schools board meeting</b>; board unanimously approved.
+            <div class="conns"><span class="cnode" style="--c:var(--node-event)"><span class="d"></span>Savanna board meeting</span><span class="cnode" style="--c:var(--node-event)"><span class="d"></span>Adam Newman</span></div></div></div>
+        <div class="ti"><span class="dot"></span><div class="date"><b>15 Jun</b><br>2026</div>
+          <div class="body">Received pricing request from Nick Denison for <b>Clear Creek Butterfly</b> (Joshua Bowers on thread).
+            <div class="conns"><span class="cnode" style="--c:var(--node-project)"><span class="d"></span>Clear Creek Butterfly</span></div></div></div>
+        <div class="ti proj"><span class="dot"></span><div class="date"><b>23 Jun</b><br>2026</div>
+          <div class="body">Scheduled to attend the meeting with <b>Mayor Monroe Nichols</b> at Tulsa City Hall. <span class="state-chip proj">Projected</span>
+            <div class="conns"><span class="cnode" style="--c:var(--node-concept)"><span class="d"></span>Mayor Nichols</span></div></div></div>
+      </div>
+    </div>
+
+    <div class="detail__foot"><span>Source: leesimon-studio · Works Cited (3)</span><a href="#">Jump to citations →</a></div>
+  </aside>
+</div>
+</body>
+</html>

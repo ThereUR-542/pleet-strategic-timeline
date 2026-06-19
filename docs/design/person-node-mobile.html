@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>PLE-153 — Person node + modal (mobile 390×844)</title>
+<link rel="stylesheet" href="person-node.css" />
+<style>
+  body { padding:0; width:390px; height:844px; overflow:hidden; }
+  .phone { position:relative; width:390px; height:844px; overflow:hidden; background:var(--bg-0); }
+  /* dimmed graph behind the sheet */
+  .mini { position:absolute; inset:0; }
+  .scrim { position:absolute; inset:0; background:rgba(5,6,10,.62); }
+  /* bottom sheet (existing --radius-panel sheet, PLE-146) */
+  .sheet { position:absolute; left:0; right:0; bottom:0; height:740px;
+    background:var(--panel); border-top:2px solid var(--node-person);
+    border-radius:var(--radius-panel) var(--radius-panel) 0 0; display:flex; flex-direction:column;
+    box-shadow:0 -12px 40px rgba(0,0,0,.5); }
+  .grab { width:40px; height:4px; border-radius:999px; background:rgba(255,255,255,.22);
+    margin:var(--space-2) auto var(--space-1); }
+  .detail__head { border-bottom:1px solid rgba(255,255,255,.08); padding:var(--space-3) var(--space-4) var(--space-3-5); }
+  .detail__body { padding:var(--space-3-5) var(--space-4) var(--space-5); }
+  .relgraphic { height:190px; }
+  .rg-more { right:var(--space-2); bottom:var(--space-2); }
+  .ti { grid-template-columns:54px 1fr; }
+  .ti::before { left:53px; } .ti .dot { left:50px; }
+  .undated-h { font-size:var(--text-2xs); letter-spacing:.06em; text-transform:uppercase; color:var(--text-low);
+    margin:var(--space-2) 0 var(--space-2-5); }
+</style>
+</head>
+<body>
+<div class="phone">
+  <!-- dimmed canvas: Amy disc + quiet edges -->
+  <div class="mini canvas">
+    <div class="band" style="top:120px"></div><div class="band-label" style="top:100px">Financial Interest</div>
+    <svg class="edges" width="390" height="844" viewBox="0 0 390 844" preserveAspectRatio="none">
+      <g fill="none" stroke="#6ea8ff" stroke-width="1.8" opacity=".55" stroke-linecap="round">
+        <path d="M150,120 C 220,90 270,150 320,180" stroke="#f59e0b"/>
+        <path d="M150,128 C 230,200 270,260 300,300"/>
+      </g>
+    </svg>
+    <div class="pnode sel" style="left:150px;top:120px">
+      <div class="disc"><svg class="glyph" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4.4 0-8 2.6-8 5.8V21h16v-1.2c0-3.2-3.6-5.8-8-5.8z"/></svg></div>
+      <div class="cap"><b>Amy K. Cook</b><span>BancFirst</span></div></div>
+  </div>
+  <div class="scrim"></div>
+
+  <!-- bottom sheet -->
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="detail__head">
+      <span class="tag"><span class="dot"></span> Person</span>
+      <button class="close">✕</button>
+      <h2 class="detail__title" style="font-size:var(--text-xl)">Amy K. Cook</h2>
+      <p class="detail__role">Executive VP · BancFirst — Jenks, OK</p>
+      <div class="detail__meta">
+        <span class="thread-chip" style="--c:var(--thread-financial-interest)">Financial Interest</span>
+        <span>·</span><span>First appearance · flagged</span>
+      </div>
+    </div>
+    <div class="detail__body">
+      <div class="note">Currently treated as <b>distinct from Amy Addington Smith</b>. Not yet confirmed whether these are the same individual.</div>
+
+      <div class="sect-h">Relationship graphic</div>
+      <div class="relgraphic">
+        <svg width="358" height="190" viewBox="0 0 358 190" preserveAspectRatio="none">
+          <g fill="none" stroke-width="2" stroke-linecap="round">
+            <path d="M88,86 C 150,58 200,46 244,42" stroke="#f59e0b"/>
+            <path d="M92,98 C 160,100 210,104 256,106" stroke="#94a3b8"/>
+            <path d="M84,108 C 120,140 150,160 176,168" stroke="#f59e0b"/>
+          </g>
+          <g fill="#d7dde9"><circle cx="244" cy="42" r="2.4"/><circle cx="256" cy="106" r="2.4"/><circle cx="176" cy="168" r="2.4"/></g>
+        </svg>
+        <div class="rg-disc" style="left:60px;top:95px">
+          <svg class="glyph" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4.4 0-8 2.6-8 5.8V21h16v-1.2c0-3.2-3.6-5.8-8-5.8z"/></svg>
+          <span class="lbl">Amy K. Cook</span></div>
+        <span class="rg-chip" style="left:255px;top:44px;--c:var(--node-event)"><span class="d"></span><span class="t">Financial Interest</span></span>
+        <span class="rg-chip" style="left:262px;top:108px;--c:var(--node-person)"><span class="d"></span><span class="t">Brady Deaton</span></span>
+        <span class="rg-chip" style="left:185px;top:170px;--c:var(--node-concept)"><span class="d"></span><span class="t">BancFirst financing</span></span>
+      </div>
+
+      <div class="sect-h">Interaction history</div>
+      <div class="timeline">
+        <div class="ti"><span class="dot"></span><div class="date"><b>Apr</b><br>2026</div>
+          <div class="body">Introduced via <b>Brady Deaton</b> as part of the widening financial interest in Pleet's work.
+            <div class="conns"><span class="cnode" style="--c:var(--node-person)"><span class="d"></span>Brady Deaton</span></div></div></div>
+      </div>
+      <div class="undated-h">Undated — pending confirmation</div>
+      <div class="timeline">
+        <div class="ti"><span class="dot" style="background:var(--text-low);box-shadow:0 0 0 3px rgba(139,148,167,.18)"></span>
+          <div class="date" style="color:var(--text-low)"><b style="color:var(--text-low)">—</b></div>
+          <div class="body" style="color:var(--text-low)">Specific meeting dates with Lawrence Gene not yet detailed in the record. Sorts last; re-slots when dated.</div></div>
+      </div>
+    </div>
+    <div class="detail__foot"><span>Source: bancfirst-jenks · Works Cited (1)</span><a href="#">Citations →</a></div>
+  </div>
+</div>
+</body>
+</html>
