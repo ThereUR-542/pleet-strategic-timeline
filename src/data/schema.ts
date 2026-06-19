@@ -89,6 +89,47 @@ const citation = z.object({
   intextKey: z.string().min(1),
 }).strict();
 
+// ── Person profile (PLE-152/PLE-154) ─────────────────────────────────────────
+// A `person` node carries an OPTIONAL enriched profile: the Master Person–
+// Relationship Index v1.0 data. Single-anchor model — the person appears once,
+// moored to `initialAppearanceDate` (first interaction w/ Lawrence Gene / Pleet
+// LLC); every later touchpoint is a dated `relationships[]` entry that the
+// render child (PLE-155) draws as a curvilinear edge radiating from the anchor.
+// Field names are camelCase to match the codebase's direct YAML→TS passthrough
+// (cf. dateStart, citationIds, opensExternal); the PRD §7 table maps them to the
+// index's snake_case spelling. `person` is optional + ORTHOGONAL to existing
+// node fields, so non-index persons (Lawrence Gene, Mayor Nichols) and all other
+// node types are unaffected.
+const personRelationship = z.object({
+  // ISO date of the interaction; null when undated/unspecified in the record
+  // (e.g. Amy K. Cook's meeting dates are flagged-for-confirmation, not deleted).
+  date: isoDate.nullable(),
+  // true for future/scheduled interactions (e.g. the 23 June Mayor meeting).
+  scheduled: z.boolean(),
+  description: z.string().min(1),
+  // Resolved to REAL existing node ids only (validated in assembleBundle).
+  connectedNodeIds: z.array(z.string()),
+  // Human labels — carry items that have no node of their own too.
+  connectedNodeTitles: z.array(z.string()),
+}).strict();
+
+const personProfile = z.object({
+  name: z.string().min(1),
+  role: z.string().min(1),
+  // Anchor date on the timeline; null when first-interaction date is not in the
+  // record (render child anchors by this, never by a duplicate later node).
+  initialAppearanceDate: isoDate.nullable(),
+  // All threads this person participates in (superset of the lane `thread`).
+  threads: z.array(thread),
+  // Reference (asset path or key) to the modal relationship graphic; null until
+  // the render/modal child (PLE-155) generates it.
+  modalGraphic: z.string().nullable(),
+  // Carried verification flags / identity notes (e.g. Amy distinct-identity,
+  // Cherokee $40M, Amy K. Cook meeting-date flag). Do NOT resolve here.
+  note: z.string().nullable(),
+  relationships: z.array(personRelationship),
+}).strict();
+
 // ── Nodes ────────────────────────────────────────────────────────────────────
 const timelineNode = z.object({
   id: z.string().min(1),
@@ -106,6 +147,9 @@ const timelineNode = z.object({
   confidence,
   isAntecedent: z.boolean().optional(),
   keyFacts: z.array(z.string()).optional(),
+  // Enriched person profile (PLE-152/PLE-154); only valid on `type: person`
+  // nodes — enforced referentially in assembleBundle.
+  person: personProfile.optional(),
 }).strict();
 
 // ── Demand model (§6) ─────────────────────────────────────────────────────────
@@ -210,6 +254,22 @@ export function assembleBundle(
   nodesDoc.nodes.forEach((n, i) => {
     n.citationIds.forEach((cid, j) => {
       if (!citationIds.has(cid)) errors.push({ file: "nodes.yaml", field: `nodes[${i}].citationIds[${j}]`, reason: `unknown citation id "${cid}"` });
+    });
+  });
+
+  // Person profiles (PLE-154): the profile is only meaningful on a person node,
+  // and every relationship's connectedNodeIds must resolve to a real node — same
+  // dangling-reference guard we apply to edges/citations, so a bad index entry
+  // is caught at load with a located error rather than a silent broken edge.
+  nodesDoc.nodes.forEach((n, i) => {
+    if (!n.person) return;
+    if (n.type !== "person") {
+      errors.push({ file: "nodes.yaml", field: `nodes[${i}].person`, reason: `person profile on non-person node "${n.id}" (type "${n.type}")` });
+    }
+    n.person.relationships.forEach((rel, r) => {
+      rel.connectedNodeIds.forEach((cid, c) => {
+        if (!nodeIds.has(cid)) errors.push({ file: "nodes.yaml", field: `nodes[${i}].person.relationships[${r}].connectedNodeIds[${c}]`, reason: `unknown node id "${cid}"` });
+      });
     });
   });
 

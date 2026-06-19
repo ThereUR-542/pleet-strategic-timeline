@@ -87,11 +87,56 @@ export interface TimelineNode {
    */
   isAntecedent?: boolean;
   /**
+   * Enriched person profile (PLE-152/PLE-154). Present only on `type: "person"`
+   * nodes that carry Master-Index data; absent on other node types and on
+   * non-index persons (Lawrence Gene, Mayor Nichols). See {@link PersonProfile}.
+   */
+  person?: PersonProfile;
+  /**
    * Scannable key-fact bullets for the detail panel (PLE-101). Optional and
    * non-blocking: when absent the panel derives a fallback set from existing
    * fields. Each entry may be `"Key: value"` — the panel styles key vs. value.
    */
   keyFacts?: string[];
+}
+
+/**
+ * One dated interaction in a person's relationship history (PLE-152/PLE-154,
+ * Master Person–Relationship Index v1.0). The render child (PLE-155) draws each
+ * as a curvilinear edge radiating from the person's single anchored node.
+ */
+export interface PersonRelationship {
+  /** ISO date; null when undated/unspecified in the record. */
+  date: IsoDate | null;
+  /** True for future/scheduled interactions (e.g. the 23 June Mayor meeting). */
+  scheduled: boolean;
+  description: string;
+  /** Resolved to REAL existing node ids only (loader validates). */
+  connectedNodeIds: TimelineNode["id"][];
+  /** Human labels; may include items that have no node of their own. */
+  connectedNodeTitles: string[];
+}
+
+/**
+ * Enriched person profile (PRD §7). Optional on a `type: "person"` node. The
+ * SINGLE-ANCHOR model: a person appears once, moored to `initialAppearanceDate`
+ * (first interaction with Lawrence Gene / Pleet LLC); all later touchpoints are
+ * `relationships[]`, never duplicate nodes at later dates. Field names map to the
+ * index's snake_case (`initial_appearance_date`, `connected_node_ids`, …) — see
+ * the PRD §7 table — but stay camelCase to match the YAML→TS passthrough.
+ */
+export interface PersonProfile {
+  name: string;
+  role: string;
+  /** Anchor date; null when first-interaction date is not in the record. */
+  initialAppearanceDate: IsoDate | null;
+  /** All threads this person participates in (superset of the lane `thread`). */
+  threads: Thread[];
+  /** Asset path/key for the modal relationship graphic; null until generated. */
+  modalGraphic: string | null;
+  /** Carried verification/identity notes (Amy distinct-identity, Cherokee $40M…). */
+  note: string | null;
+  relationships: PersonRelationship[];
 }
 
 export interface Edge {

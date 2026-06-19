@@ -19,6 +19,7 @@ Google Maps Embed API · youtube-nocookie · Vitest for the §6 dual-verificatio
 ```
 src/
   data/types.ts      §7 canonical data model — the shared contract
+                     (Person model addendum: docs/prd-7-data-model-person.md)
   data/content.ts    §8 reconciled chronology (placeholder, config-driven) + §6 model
   lib/demand.ts      §6 demand math + algebra/Simpson dual verification
   lib/demand.test.ts §6.4 unit tests asserting |Δ| ≤ 1e-4
